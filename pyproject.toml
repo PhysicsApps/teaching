@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "teaching apps"
+version = "0.0.1"
+description = "collection of apps and interactive plots for physics"
+readme = "README.md"
+requires-python = ">=3.7"
+license = { text = "MIT" }
+authors = [
+    { name = "Paul Tuemmler", email = "paul.tuemmler@uni-rostock.de" }
+]
+urls = {"Homepage" = "https://github.com/ptuemmler/teachingapps"}
+
+# Replace this list with the actual contents of requirements.txt
+dependencies = [
+    "numpy",
+    "shiny",
+    "shinylive",
+    "shinywidgets",
+    "pandas",
+    "plotly",
+    "matplotlib",
+    "mkdocs",
+    "mkdocstrings[python]",
+    "mkdocs-material",
+    "mkdocs-autorefs",
+    "mkdocs-literate-nav",
+    "mkdocs-gen-files",
+    "mkdocs-macros-plugin",
+]
+
