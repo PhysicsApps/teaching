@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "collection of apps and interactive plots for physics"
 readme = "README.md"
 requires-python = ">=3.7"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
     { name = "Paul Tuemmler", email = "paul.tuemmler@uni-rostock.de" }
 ]
