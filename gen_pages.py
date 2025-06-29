@@ -10,6 +10,7 @@ for filepath in sorted(Path("docs").glob("**/app.md")):
     filepath = filepath.relative_to("docs")
     # split into directories and write nav files
     parts = Path(filepath).parts
+    print(parts)
     # Create a Navigation page SUMMARY.md
     nav[*parts[1:-1]] = Path(*parts[1:])
 
