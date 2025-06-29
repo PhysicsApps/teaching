@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "teaching apps"
+name = "teaching_apps"
 version = "0.0.1"
 description = "collection of apps and interactive plots for physics"
 readme = "README.md"
