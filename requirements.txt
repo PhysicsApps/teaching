@@ -1,0 +1,14 @@
+numpy
+shiny
+shinylive
+shinywidgets
+pandas
+plotly
+matplotlib
+mkdocs
+mkdocstrings[python]
+mkdocs-material
+mkdocs-autorefs
+mkdocs-literate-nav
+mkdocs-gen-files
+mkdocs-macros-plugin
