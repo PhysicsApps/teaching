@@ -21,9 +21,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Change to correct directory
-        run: cd msft_web_example
-
       - name: Run mkdocs
         run: mkdocs build
 

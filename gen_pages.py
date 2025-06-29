@@ -12,7 +12,7 @@ for filepath in sorted(Path("docs").glob("**/app.md")):
     parts = Path(filepath).parts
     print(parts)
     # Create a Navigation page SUMMARY.md
-    nav[*parts[1:-1]] = Path(*parts[1:])
+    nav[[part for part in parts[1:-1]]] = Path(*parts[1:])
 
     # While we are here, build shinylive apps
     subdirpath = Path(*parts[1:-1])
