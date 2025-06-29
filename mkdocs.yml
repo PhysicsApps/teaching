@@ -3,6 +3,8 @@ site_name: Teaching tools and applications
 theme:
   name: "material"
 
+use_directory_urls: false
+
 plugins:
 - search
 - macros
