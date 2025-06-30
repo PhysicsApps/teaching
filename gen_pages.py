@@ -15,9 +15,9 @@ for filepath in sorted(Path("docs").glob("**/app.md")):
     nav[[part for part in parts[1:-1]]] = Path(*parts[1:])
 
     # While we are here, build shinylive apps
-    subdirpath = Path(*parts[1:-1])
-    os.makedirs(Path("./site/shinyapps", subdirpath), exist_ok=True)
-    _export.export(Path("docs", *parts[:-1]), Path("./site/shinyapps"), subdir=subdirpath, verbose=True)
+    subdirpath = Path('shinyliveapps', *parts[1:-1])
+    os.makedirs(Path("./site", subdirpath), exist_ok=True)
+    _export.export(Path("docs", *parts[:-1]), Path("./site"), subdir=subdirpath, verbose=True)
 
     # And apply the magic embed:
     # <div>

@@ -8,7 +8,7 @@ def define_env(env):
     @env.macro
     def app_html():
         parts = Path(str(getattr(env, 'page'))).parts # "apps/Templates/PlotlyPenguins/app/"
-        app_index = str(Path('shinyapps', *parts[1:-1], 'index.html')) # "shinyapps/Templates/PlotlyPenguins/index.html"
+        app_index = str(Path('shinyliveapps', *parts[1:-1], 'index.html')) # "shinyliveapps/Templates/PlotlyPenguins/index.html"
         # generate relative path wtih a lot of ../../..
 
         relative_path = '../' * (len(parts) - 1)
