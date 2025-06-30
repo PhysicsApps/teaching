@@ -16,8 +16,8 @@ for filepath in sorted(Path("docs").glob("**/app.md")):
 
     # While we are here, build shinylive apps
     subdirpath = Path(*parts[1:-1])
-    os.makedirs(Path("docs/site", subdirpath), exist_ok=True)
-    _export.export(Path("docs", *parts[:-1]), Path("docs/site"), subdir=subdirpath, verbose=True)
+    os.makedirs(Path("./site/shinyapps", subdirpath), exist_ok=True)
+    _export.export(Path("docs", *parts[:-1]), Path("./site/shinyapps"), subdir=subdirpath, verbose=True)
 
     # And apply the magic embed:
     # <div>
@@ -31,5 +31,3 @@ for filepath in sorted(Path("docs").glob("**/app.md")):
 
 with mkdocs_gen_files.open("apps/SUMMARY.md", "w") as nav_file:
     nav_file.writelines(nav.build_literate_nav())
-
-
