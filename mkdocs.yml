@@ -26,4 +26,4 @@ plugins:
 - tags
 - gen-files:
     scripts:
-      - gen_pages.py  # or any other name or path
+      - gen_shinylive.py  # or any other name or path

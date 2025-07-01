@@ -11,9 +11,7 @@ def define_env(env):
     def app_html():
         parts = Path(str(getattr(env, 'page'))).parts # " /blog/plotly-penguins-app.html"
         html_filename = str(parts[-1]).split('.')[0]
-        app_index = str(Path('shinyliveapps', html_filename, 'index.html'))
-        relative_path = '../' * (len(parts))
-        app_index = relative_path + app_index
+        app_index = '/' + str(Path('shinyliveapps', html_filename, 'index.html'))
         return app_index
 
     @env.macro
