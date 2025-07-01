@@ -8,7 +8,8 @@ date: 2025-07-01
 ---
 
 # Plotly Penguins app
-
+Quick example for a simple plotly app.
+<!-- more -->
 <div>
     <iframe src={{app_html()}} width="100%" height="600px"></iframe>
 </div>

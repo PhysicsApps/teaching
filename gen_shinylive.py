@@ -21,6 +21,6 @@ for filepath in sorted(Path("docs").glob("**/app.md")):
         raise ValueError(f"No title found in {filepath}. Please ensure the app.md file contains a title starting with '# '.")
 
     test = slugify(case='lower')(title, sep='-')
-    subdirpath = Path('shinyliveapps', test)
+    subdirpath = Path('apps', test)
     os.makedirs(Path("./site", subdirpath), exist_ok=True)
     _export.export(Path("docs", *parts[:-1]), Path("./site"), subdir=subdirpath, verbose=True)
