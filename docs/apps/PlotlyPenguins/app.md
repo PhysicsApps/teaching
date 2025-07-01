@@ -5,6 +5,8 @@ categories:
   - Search
   - Performance
 date: 2025-07-01
+hide:
+  - toc
 ---
 
 # Plotly Penguins app
