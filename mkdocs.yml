@@ -2,15 +2,28 @@ site_name: Teaching tools and applications
 
 theme:
   name: "material"
+  features:
+    - navigation.indexes
+nav:
+  - Home: index.md
+  - About: about.md
+  - License: license.md
 
 use_directory_urls: false
+repo_url: https://github.com/ptuemmler/msft_web_example
 
 plugins:
 - search
 - macros
 - autorefs
+- blog:
+    post_url_format: "{slug}"
+    post_readtime: false
+    blog_dir: .
+    post_dir: "{blog}/apps"
+    categories_toc: true
+    archive: false
+- tags
 - gen-files:
     scripts:
       - gen_pages.py  # or any other name or path
-- literate-nav:
-    nav_file: SUMMARY.md

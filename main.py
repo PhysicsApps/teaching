@@ -1,5 +1,7 @@
 from pathlib import Path
 
+target_url = 'https://ptuemmler.github.io/msft_web_example/' #use this for QR-code generation via e.g. https://pypi.org/project/qrcode/
+
 def define_env(env):
     """
     This is the hook for the variables, macros and filters.
@@ -7,13 +9,11 @@ def define_env(env):
 
     @env.macro
     def app_html():
-        parts = Path(str(getattr(env, 'page'))).parts # "apps/Templates/PlotlyPenguins/app/"
-        app_index = str(Path('shinyliveapps', *parts[1:-1], 'index.html')) # "shinyliveapps/Templates/PlotlyPenguins/index.html"
-        # generate relative path wtih a lot of ../../..
-
-        relative_path = '../' * (len(parts) - 1)
+        parts = Path(str(getattr(env, 'page'))).parts # " /blog/plotly-penguins-app.html"
+        html_filename = str(parts[-1]).split('.')[0]
+        app_index = str(Path('shinyliveapps', html_filename, 'index.html'))
+        relative_path = '../' * (len(parts))
         app_index = relative_path + app_index
-
         return app_index
 
     @env.macro

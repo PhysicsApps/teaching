@@ -1,3 +1,12 @@
+---
+authors:
+  - ptuemmler
+categories:
+  - Search
+  - Performance
+date: 2025-07-01
+---
+
 # Plotly Penguins app
 
 <div>
