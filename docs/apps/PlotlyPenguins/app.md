@@ -10,13 +10,10 @@ hide:
 ---
 
 # Plotly Penguins app
-Quick example for a simple plotly app.
+Quick example for a simple plotly app. Plotly is an interactive graphics plotting library.
 <!-- more -->
-<div>
-    <iframe src={{app_html()}} width="100%" height="600px"></iframe>
-</div>
 
-Plotly is an interactive graphics plotting library.
+{{embed_app("100%", "1000px")}}
 
 To make an interactive plot with Plotly in Shiny for Python, we will need to use the shinywidgets library to connect Shiny with ipywidgets.
 

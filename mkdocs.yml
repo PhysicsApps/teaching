@@ -23,6 +23,10 @@ plugins:
 - search
 - macros
 - autorefs
+- tags
+- gen-files:
+    scripts:
+      - gen_shinylive.py  # or any other name or path
 - blog:
     post_url_format: "{slug}"
     post_readtime: false
@@ -31,7 +35,6 @@ plugins:
     categories_toc: true
     archive: false
     post_excerpt: required
-- tags
-- gen-files:
-    scripts:
-      - gen_shinylive.py  # or any other name or path
+    categories_allowed:
+      - Search
+      - Performance

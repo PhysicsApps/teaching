@@ -13,6 +13,4 @@ hide:
 Quick example for a more complex application.
 <!-- more -->
 
-<div>
-    <iframe src={{app_html()}} width="100%" height="600px"></iframe>
-</div>
+{{embed_app("100%", "1000px")}}
