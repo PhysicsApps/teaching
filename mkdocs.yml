@@ -17,7 +17,7 @@ nav:
   - About: about.md
   - License: license.md
 
-repo_url: https://github.com/ptuemmler/msft_web_example
+repo_url: https://github.com/ptuemmler/TeachingTools
 use_directory_urls: false
 exclude_docs: |
   *.py
@@ -39,10 +39,12 @@ plugins:
     categories_toc: true
     archive: false
     post_excerpt: required
+    draft: true
     categories_allowed:
       - Templates
       - Mathematics
-
+      - Numerics
+      - Physics
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true

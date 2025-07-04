@@ -1,11 +1,11 @@
 from pathlib import Path
 
-target_url = 'https://ptuemmler.github.io/msft_web_example/' #use this for QR-code generation via e.g. https://pypi.org/project/qrcode/
 
-
-def get_app_link(current_path):
+def get_app_link(current_path, subdir: str):
     parts = current_path.parts
     html_filename = str(parts[-1]).split('.')[0]
+    if subdir is not None:
+        html_filename += '_' + subdir
     return str(Path('apps', html_filename, 'index.html'))
 
 def define_env(env):
@@ -14,9 +14,9 @@ def define_env(env):
     """
 
     @env.macro
-    def embed_app(width='100%', height='600px'):
+    def embed_app(width='100%', height='600px', subdir: str = None):
         current_path = Path(str(getattr(env, 'page'))) # " /blog/plotly-penguins-app.html"
-        return f"<div>\n<iframe src={get_app_link(current_path)} width={width} height={height}></iframe>\n</div>"
+        return f"<div>\n<iframe src={get_app_link(current_path, subdir)} width={width} height={height}></iframe>\n</div>"
 
     @env.macro
     def doc_env():

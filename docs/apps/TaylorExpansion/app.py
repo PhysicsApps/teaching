@@ -24,8 +24,8 @@ with ui.sidebar():
     ui.input_slider(
         "center",
         "Expansion Center",
-        min=-2 * np.pi,
-        max=2 * np.pi,
+        min=-4,
+        max=4,
         value=0,
         step=0.1
     )
@@ -33,11 +33,15 @@ with ui.sidebar():
         "x_range",
         "X-axis Range",
         min=1,
-        max=4 * np.pi,
+        max=10,
         value=2 * np.pi,
         step=0.1
     )
-
+    ui.input_checkbox(
+        'show_contrib',
+        'Show Contributions',
+        value=False,
+    )
 
 @reactive.calc
 def clean_function():
@@ -68,7 +72,7 @@ def evaluate_function():
     """Evaluate the function at given x values"""
     func_str = clean_function()
     x_range = input.x_range()
-    x = np.linspace(-x_range, x_range, 1024)
+    x = np.linspace(-x_range, x_range, 1024 + 1)
 
     try:
         # Create a safe namespace for evaluation
@@ -114,19 +118,20 @@ def taylor_plot():
     order = input.order()
     derivative_values = calculate_derivatives()
 
-    # Calculate Taylor expansion
-    y_taylor = np.zeros_like(x)
-
-    for n in range(order + 1):
-        if n < len(derivative_values):
-            # Add nth term of Taylor series
-            y_taylor += derivative_values[n] * ((x - a) ** n) / math.factorial(n)
-
-    # Create the plot
     fig, ax = plt.subplots(figsize=(12, 7))
 
     # Plot original function
     ax.plot(x, y_true, 'b-', linewidth=2, label=f'f(x) = {func_str}', alpha=0.8)
+
+    # Calculate Taylor expansion
+    y_taylor_terms = []
+    for n in range(order + 1):
+        # Add nth term of Taylor series
+        y_taylor_terms.append(derivative_values[n] * ((x - a) ** n) / math.factorial(n))
+        if input.show_contrib():
+            ax.plot(x, y_taylor_terms[n], 'k--', linewidth=1, alpha=0.5)
+
+    y_taylor = np.sum(y_taylor_terms, axis=0)
 
     # Plot Taylor approximation
     ax.plot(x, y_taylor, 'r--', linewidth=2,
