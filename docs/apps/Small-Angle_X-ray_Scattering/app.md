@@ -2,8 +2,7 @@
 authors:
   - ptuemmler
 categories:
-  - Search
-  - Performance
+  - Mathematics
 date: 2025-07-01
 hide:
   - toc

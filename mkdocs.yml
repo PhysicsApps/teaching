@@ -3,10 +3,14 @@ site_name: Teaching tools and applications
 theme:
   name: "material"
   features:
-    - navigation.indexes
+    - toc.integrate
 
 extra_css:
   - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
   - Home: index.md
@@ -36,5 +40,16 @@ plugins:
     archive: false
     post_excerpt: required
     categories_allowed:
-      - Search
-      - Performance
+      - Templates
+      - Mathematics
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
