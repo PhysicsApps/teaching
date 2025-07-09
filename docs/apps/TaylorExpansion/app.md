@@ -4,7 +4,7 @@ authors:
 categories:
   - Mathematics
 tags:
-  - Matplotlib
+  - Calculus
 date: 2025-07-03
 hide:
   - toc
@@ -30,35 +30,29 @@ Or more compactly,
 f(x) = \sum_{n=0}^{\infty} \frac{f^{(n)}(a)}{n!}(x - a)^n
 \]
 
-Where:
-  - \( f^{(n)}(a) \) is the \( n \)-th derivative of \( f \) evaluated at point \( a \)
-  - \( n! \) is the factorial of \( n \)
-  - \( (x - a)^n \) is the \( n \)-th power of \( (x - a) \)
+Where \( f^{(n)}(a) \) is the \( n \)-th derivative of \( f \) evaluated at point \( a \) and \( n! \) is the factorial of \( n \).
 
 If the expansion is centered at \( a = 0 \), it is called a **Maclaurin series**.
 
-
-## How It Works
-
-The Taylor expansion builds a polynomial that approximates a function near a specific point \( a \). Each term in the expansion improves the approximation by incorporating more information about the function's derivatives at that point.
-
 ### Example: Exponential Function
 
-The Taylor series for \( e^x \) centered at \( a = 0 \) (Maclaurin series) is:
+The Taylor series for \( e^x \) centered at \( a = 0 \) is:
 
 \[
 e^x = 1 + x + \frac{x^2}{2!} + \frac{x^3}{3!} + \cdots = \sum_{n=0}^{\infty} \frac{x^n}{n!}
 \]
 
-This series converges to \( e^x \) for all real values of \( x \).
+### Example: Sine Function
+The Taylor series for \( \sin(x) \) centered at \( a = 0 \) is:
+
+\[
+\sin(x) = x - \frac{x^3}{3!} + \frac{x^5}{5!} - \frac{x^7}{7!} + \cdots = \sum_{n=0}^{\infty} \frac{(-1)^n x^{2n+1}}{(2n+1)!}
+\]
 
 
-## Convergence and Accuracy
+### Example: Cosine Function
+The Taylor series for \( \cos(x) \) centered at \( a = 0 \) is:
 
-Not all Taylor series converge to the function they represent. The accuracy of a Taylor approximation depends on:
-- The number of terms used (more terms generally mean higher accuracy)
-- How close \( x \) is to the expansion point \( a \)
-- Whether the function is analytic (i.e. equal to its Taylor series in a neighborhood of \( a \))
-
-For practical purposes, we often truncate the series after a finite number of terms. The **remainder term** estimates the error introduced by this truncation.
-
+\[
+\cos(x) = 1 - \frac{x^2}{2!} + \frac{x^4}{4!} - \frac{x^6}{6!} + \cdots = \sum_{n=0}^{\infty} \frac{(-1)^n x^{2n}}{(2n)!}
+\]
