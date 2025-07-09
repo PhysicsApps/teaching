@@ -7,7 +7,7 @@ We welcome contributions to this project! If you have an idea for a new tool, a 
 ## Setting up a development environment
 You should first fork [this](https://github.com/physicsapps/teaching) repository and then clone it to your local machine.
 ```bash
-git clone https://github.com/physicsapps/teaching.git
+git clone https://github.com/<username>/teaching.git
 cd TeachingTools
 ```
 
@@ -27,23 +27,25 @@ git switch -c my-new-feature
 To create a new tool, you should copy one of the template tools from the `apps` directory and modify it to your needs.
 Each tool should have its own directory with the following structure:
 ```
-apps/
-└── MyNewTool
-    ├── app.py
-    ├── app.md
-    └── requirements.txt
+docs/
+└── apps/
+    └── MyNewTool
+        ├── app.py
+        ├── app.md
+        └── requirements.txt
 ```
 If you want to use multiple apps in one tool, you can create a separate directory for every app:
 ```
-apps/
-└── MyNewTool
-    ├── app1
-    |   ├── app.py
-    |   └── requirements.txt
-    ├── app2
-    |   ├── app.py
-    |   └── requirements.txt
-    └── app.md
+docs/
+└── apps/
+    └── MyNewTool
+        ├── app1
+        |   ├── app.py
+        |   └── requirements.txt
+        ├── app2
+        |   ├── app.py
+        |   └── requirements.txt
+        └── app.md
 ```
 The tools themselves are created using [Shiny for python](https://shiny.posit.co/py/), which allows you to create interactive web applications using Python.
 In the case of static sites, such as this one, the tools are rendered as static HTML files using the [shinylive](https://github.com/posit-dev/py-shinylive) library.
@@ -89,14 +91,15 @@ authors:
     slug: url           # Author profile slug
     url: url            # Author website URL
 ```
-Set the category to one of the existing categories, or create a new one to `mkdocs.yml` if necessary.
+Set the category to one of the existing categories, or create a new one to `mkdocs.yml` if necessary. 
 ```yml title="mkdocs.yml"
 plugins:
 - blog:
     categories_allowed:
       - <category>
 ```
-The tags are used to further categorize the tool and can be anything you like.
+Note that the amount of categories should be kept to a minimum, so try to use existing categories if possible.
+Instead, use the `tags` section to add more specific tags to your tool.
 The name of the tool is generated from the title of the `app.md` file, so make sure to use a descriptive title.
 The `<!-- more -->` tag is used to separate the introduction, which is shown as an excerpt, from the rest of the documentation.
 To embed the app in the documentation, you can use the `{{embed_app("width", "height")}}` macro.
@@ -109,7 +112,7 @@ mkdocs build --clean
 python -m http.server --directory ./site --bind localhost 8008 
 ```
 This will create a `site` directory containing the static HTML files for the documentation, including your new tool.
-You can then open your browser and navigate to [localhost](http://[::1]:8008/) to see the documentation and test if everything works.
+You can then open your browser and navigate to [localhost http://[::1]:8008/](http://[::1]:8008/) to see the documentation and test if everything works.
 If that is the case, congratulations! You have successfully created a new tool for TeachingTools and can now submit your changes.
 
 ## Submitting your changes
