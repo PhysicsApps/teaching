@@ -5,7 +5,7 @@ import os
 from pymdownx.slugs import slugify
 
 
-target_url = 'https://ptuemmler.github.io/msft_web_example/' #use this for QR-code generation via e.g. https://pypi.org/project/qrcode/
+target_url = 'https://physicsapps.github.io/teaching/' #use this for QR-code generation via e.g. https://pypi.org/project/qrcode/
 
 
 for file_path in sorted(Path("docs").glob("**/app.md")):
