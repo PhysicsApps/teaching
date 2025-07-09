@@ -5,9 +5,9 @@ render_macros: false
 We welcome contributions to this project! If you have an idea for a new tool, a bug fix, or any other improvement, please follow these steps:
 
 ## Setting up a development environment
-You should first fork [this](https://github.com/ptuemmler/TeachingTools) repository and then clone it to your local machine.
+You should first fork [this](https://github.com/physicsapps/teaching) repository and then clone it to your local machine.
 ```bash
-git clone https://github.com/<username>/TeachingTools.git
+git clone https://github.com/physicsapps/teaching.git
 cd TeachingTools
 ```
 
