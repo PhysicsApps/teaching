@@ -84,5 +84,5 @@ For the 1D case, we can use the following python and matlab code snippets to com
     
     ```
 
-{{embed_app("100%", "500px", "1d")}}
-{{embed_app("100%", "500px", "2d")}}
+{{embed_app("100%", "800px", "1d")}}
+{{embed_app("100%", "800px", "2d")}}
