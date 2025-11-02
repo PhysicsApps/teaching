@@ -34,19 +34,18 @@ app_ui = ui.page_sidebar(
         ),
 
         ui.input_checkbox(
-            'show_imaginary',
-            'Show imaginary parts',
-            value=True,
-        ),
-
-        ui.input_checkbox(
             'include_negative_frequencies',
-            'Add imaginary Fourier component',
+            'Add negative Fourier component',
             value=True,
         ),
         ui.input_checkbox(
-            'flip_imaginary',
-            'Flip imaginary Fourier component',
+            'flip_negative_frequencies',
+            'Flip negative Fourier component',
+            value=True,
+        ),
+        ui.input_checkbox(
+            'set_imaginary',
+            'Make Fourier component imaginary',
             value=True,
         ),
         ui.input_checkbox(
@@ -112,25 +111,25 @@ def server(input, output, session):
             axs.set_ylim(-1, 1)
 
             eventx, eventy = input.event_x(), input.event_y()
-            fourier_signal = get_gaussian(freq_axis, eventx, sigma, eventy)
-
-            sign = -1 if input.flip_imaginary() else 1
+            imag = 1j if input.set_imaginary() else 1
+            sign = -1 if input.flip_negative_frequencies() else 1
+            fourier_signal = imag * get_gaussian(freq_axis, eventx, sigma, eventy)
             if input.include_negative_frequencies():
-                # add negative frequencies for real signal
-                fourier_signal = fourier_signal + sign * 1j * get_gaussian(freq_axis, -eventx, sigma, eventy)
+                fourier_signal = fourier_signal + sign * imag * get_gaussian(freq_axis, -eventx, sigma, eventy)
 
             if sigma == 0:
                 axs.plot(freq_axis, np.zeros_like(freq_axis), color=red, label=f'Real Part')
-                axs.plot([eventx, eventx], [0, eventy], color=red)
-                if input.show_imaginary():
-                    axs.plot(freq_axis, np.zeros_like(freq_axis), color=blue, ls='--', label=f'Imaginary Part')
-
+                axs.plot(freq_axis, np.zeros_like(freq_axis), color=blue, ls='--', label=f'Imaginary Part')
+                color, ls = (red, '-') if imag == 1 else (blue, '--')
+                if eventx == 0 and input.include_negative_frequencies() and sign == 1:
+                    axs.plot([eventx, eventx], [0, 2 * eventy], color=color, ls=ls)
+                else:
+                    axs.plot([eventx, eventx], [0,  eventy], color=color, ls=ls)
                     if input.include_negative_frequencies():
-                        axs.plot([-eventx, -eventx], [0, sign * eventy], color=blue, ls='--')
+                        axs.plot([-eventx, -eventx], [0, sign * eventy], color=color, ls=ls)
             else:
                 axs.plot(freq_axis, np.real(fourier_signal), color=red, label=f'Real Part')
-                if input.show_imaginary():
-                    axs.plot(freq_axis, np.imag(fourier_signal), color=blue, ls='--', label=f'Imaginary Part')
+                axs.plot(freq_axis, np.imag(fourier_signal), color=blue, ls='--', label=f'Imaginary Part')
 
             # axs.scatter([eventx], [eventy], color='black')
             axs.legend()
@@ -158,35 +157,33 @@ def server(input, output, session):
 
             fig, axs = plt.subplots()
             axs.set_xlim(x_axis_lims)
-            if sigma == 0:
-                axs.set_ylim(-1, 1)
 
             eventx, eventy = input.event_x(), input.event_y()
-            fourier_signal = get_gaussian(freq_axis, eventx, sigma, eventy)
+            imag = 1j if input.set_imaginary() else 1
+            sign = -1 if input.flip_negative_frequencies() else 1
+            fourier_signal = imag * get_gaussian(freq_axis, eventx, sigma, eventy)
             if input.include_negative_frequencies():
-                # add negative frequencies for real signal
-                sign = -1 if input.flip_imaginary() else 1
-                fourier_signal = fourier_signal + sign * 1j * get_gaussian(freq_axis, -eventx, sigma, eventy)
+                fourier_signal = fourier_signal + sign * imag * get_gaussian(freq_axis, -eventx, sigma, eventy)
 
             real_signal = np.fft.ifftshift(np.fft.ifft(np.fft.ifftshift(fourier_signal))) * len(x_axis)
 
             if input.show_contributions():
-                # plot individual contributions
                 for freq, amplitude in zip(freq_axis, fourier_signal):
                     if np.abs(amplitude) < 1e-3:
                         continue
                     contribution = amplitude * np.exp(2j * np.pi * freq * x_axis)
                     axs.plot(x_axis, np.real(contribution), color=red, alpha=0.1)
-                    if input.show_imaginary():
-                        axs.plot(x_axis, np.imag(contribution), color=blue, alpha=0.1)
+                    axs.plot(x_axis, np.imag(contribution), color=blue, alpha=0.1)
 
             # real signal
             axs.plot(x_axis, np.real(real_signal), color=red, label=f'Real Part')
-            if input.show_imaginary():
-                axs.plot(x_axis, np.imag(real_signal), color=blue, ls='--', label=f'Imaginary Part')
+            axs.plot(x_axis, np.imag(real_signal), color=blue, ls='--', label=f'Imaginary Part')
 
             axs.legend()
 
+            limit = np.max([np.max(np.abs(np.real(real_signal))) * 1.1, np.abs(np.max(np.imag(real_signal))) * 1.1, 1])
+
+            axs.set_ylim(-limit, limit)
             axs.set_title("Real Space Signal")
             axs.set_xlabel("Time [s]")
             axs.set_ylabel("Amplitude")
