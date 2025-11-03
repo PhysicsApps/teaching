@@ -1,6 +1,7 @@
 ---
 authors:
   - ptuemmler
+  - lseiffert
 categories:
   - Physics
 tags:
