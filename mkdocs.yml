@@ -81,6 +81,7 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - pymdownx.details
   - pymdownx.tabbed:
       alternate_style: true
 copyright: CC BY 4.0 for teaching materials, MIT License for code examples
