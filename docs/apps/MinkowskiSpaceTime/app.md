@@ -11,7 +11,5 @@ hide:
 draft: true
 ---
 # Minkowski Space-Time
-Bli
 <!-- more -->
-BlaBlu
 {{embed_app("100%", "800px")}}

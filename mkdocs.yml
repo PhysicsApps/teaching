@@ -83,3 +83,5 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+copyright: CC BY 4.0 for teaching materials, MIT License for code examples
+
