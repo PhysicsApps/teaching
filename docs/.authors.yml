@@ -1,6 +1,12 @@
 authors:
   ptuemmler:
     name: Paul Tuemmler        # Author name
-    description: Strong-field nanophysics # Author description
-    avatar: https://github.com/ptuemmler.png
+    description: Strong-Field Nanophysics # Author description
+    avatar: https://www.snp.physik.uni-rostock.de/storages/uni-rostock/Alle_MNF/Physik_Starkfeld/pictures/team/paul_tuemmler.png
     url: https://github.com/ptuemmler
+  lseiffert:
+    name: Lennart Seiffert        # Author name
+    description: Strong-Field Nanophysics # Author description
+    avatar: https://www.snp.physik.uni-rostock.de/storages/uni-rostock/Alle_MNF/Physik_Starkfeld/pictures/team/lennart_seiffert.png
+    url: https://github.com/LennartSeiffert
+    
