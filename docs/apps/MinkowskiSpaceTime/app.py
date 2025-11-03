@@ -84,8 +84,9 @@ def server(input, output, session):
             red = 'lightcoral'
             color_A = 'lime'
             color_B = 'darkred'
-            color_C = 'darkblue'
+            color_C = 'deepskyblue'
             cmap = berlin
+            alpha = 0.85
         else:
             style_label = 'seaborn-v0_8'
             blue = 'navy'
@@ -94,6 +95,7 @@ def server(input, output, session):
             color_B = 'red'
             color_C = 'blue'
             cmap = 'RdBu_r'
+            alpha = 0.3
 
         with plt.style.context(style_label):
             v = input.velocity()
@@ -107,7 +109,7 @@ def server(input, output, session):
 
             if input.show_minkowski():
                 img = ax.imshow(np.sqrt(np.abs(minkowski_metric)) * np.sign(minkowski_metric), extent=(-5, 5, -5, 5),
-                                origin='lower', cmap=cmap, alpha=0.75)
+                                origin='lower', cmap=cmap, alpha=alpha)
                 cbar=fig.colorbar(img, ax=ax, label=r'Eigenzeit $\sqrt{(c^2t^2 - x^2)}$', ticks=tick_positions)
                 cbar.ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{-int(x)}i" if x < 0 else f"{int(x)}"))
 
