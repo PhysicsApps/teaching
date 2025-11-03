@@ -91,7 +91,7 @@ authors:
     slug: url           # Author profile slug
     url: url            # Author website URL
 ```
-Set the category to one of the existing categories, or create a new one to `mkdocs.yml` if necessary.
+Set the category to one of the existing categories, or create a new one to `mkdocs.yml` if necessary. 
 ```yml title="mkdocs.yml"
 plugins:
 - blog:
