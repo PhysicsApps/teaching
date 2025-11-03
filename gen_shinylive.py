@@ -3,8 +3,7 @@ from pathlib import Path
 from shinylive import _export
 import os
 from pymdownx.slugs import slugify
-
-
+import platform
 target_url = 'https://physicsapps.github.io/teaching/' #use this for QR-code generation via e.g. https://pypi.org/project/qrcode/
 
 
@@ -25,7 +24,13 @@ for file_path in sorted(Path("docs").glob("**/app.md")):
         raise ValueError(f"No title found in {file_path}. Please ensure the app.md file contains a title starting with '# '.")
 
     base_apppath = Path("docs", *parts[:-1])  # e.g. "docs/blog/PlotlyPenguins"
-    base_shinypath = Path('apps', slugify(case='lower')(title, sep='-'))
+
+    if platform.system() == "Windows":
+        base_shinypath = Path('apps_' + slugify(case='lower')(title, sep='-'))
+    elif platform.system() == "Linux":
+        base_shinypath = Path('apps', slugify(case='lower')(title, sep='-'))
+    else:
+        raise ValueError("Unsupported operating system. This script only supports Windows and Linux.")
     # Look for all app.py files here and in subdirectories e.g. "docs/apps/FastFourierTransforms/1d/app.py"
     for app_path in Path("docs", *parts[:-1]).glob("**/app.py"):
         subdirpath = app_path.relative_to(Path("docs", *parts[:-1])) # 1d/app.py

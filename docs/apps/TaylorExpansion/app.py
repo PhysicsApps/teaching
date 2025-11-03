@@ -45,6 +45,7 @@ app_ui = ui.page_sidebar(
             'Show Contributions',
             value=False,
         ),
+        ui.input_dark_mode(id='dark_mode'),
         open='always'
     ),
     ui.output_plot("taylor_plot", width="100%", height="440px")
@@ -119,48 +120,52 @@ def server(input: Inputs, output: Outputs, session: Session):
 
     @render.plot()
     def taylor_plot():
-        x, y_true, func_str = evaluate_function()
-        a = input.center()
-        order = input.order()
-        derivative_values = calculate_derivatives()
+        if input.dark_mode() == "dark":
+            style_label = 'dark_background'
+        else:
+            style_label = 'seaborn-v0_8'
 
-        fig, ax = plt.subplots()
+        with plt.style.context(style_label):
+            x, y_true, func_str = evaluate_function()
+            a = input.center()
+            order = input.order()
+            derivative_values = calculate_derivatives()
 
-        # Plot original function
-        ax.plot(x, y_true, linewidth=2, label=f'f(x)')
+            fig, ax = plt.subplots()
 
-        # Calculate Taylor expansion
-        y_taylor_terms = []
-        for n in range(order + 1):
-            # Add nth term of Taylor series
-            y_taylor_terms.append(derivative_values[n] * ((x - a) ** n) / math.factorial(n))
-        y_taylor = np.sum(y_taylor_terms, axis=0)
+            # Plot original function
+            ax.plot(x, y_true, linewidth=2, label=r'$f(x)$')
 
-        # Plot Taylor approximation
-        ax.plot(x, y_taylor, '--', linewidth=2,
-                label=fr'f_{order}(x)')
-
-        # Mark the point on the original function at expansion center
-        center_idx = np.argmin(np.abs(x - a))
-        temp = ax.plot(a, y_true[center_idx], 'o', markersize=8)
-        ax.axvline(x=a, linestyle=':', color=temp[0].get_color(),
-                   label=f'a={a:.2f})')
-
-        if input.show_contrib():
+            # Calculate Taylor expansion
+            y_taylor_terms = []
             for n in range(order + 1):
-                ax.plot(x, y_taylor_terms[n], 'k--', linewidth=1, alpha=0.4)
-        # Formatting
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        # ax.set_title(f'Taylor Expansion of {func_str} around x = {a:.2f}')
-        ax.legend()
+                # Add nth term of Taylor series
+                y_taylor_terms.append(derivative_values[n] * ((x - a) ** n) / math.factorial(n))
+            y_taylor = np.sum(y_taylor_terms, axis=0)
 
-        # Set reasonable y-limits based on the data
-        y_min = np.min(y_true)
-        y_max = np.max(y_true)
-        y_range = y_max - y_min
-        ax.set_ylim(y_min - 0.1 * y_range, y_max + 0.1 * y_range)
+            # Plot Taylor approximation
+            ax.plot(x, y_taylor, '--', linewidth=2, label=rf'$f_{order}(x)$')
 
+            # Mark the point on the original function at expansion center
+            center_idx = np.argmin(np.abs(x - a))
+            temp = ax.plot(a, y_true[center_idx], 'o', markersize=8)
+            ax.axvline(x=a, linestyle=':', color=temp[0].get_color(),
+                       label=rf'$a={a:.2f}$')
+
+            if input.show_contrib():
+                for n in range(order + 1):
+                    ax.plot(x, y_taylor_terms[n], color='grey', ls='--', linewidth=1, alpha=0.4)
+            # Formatting
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            # ax.set_title(f'Taylor Expansion of {func_str} around x = {a:.2f}')
+            ax.legend()
+
+            # Set reasonable y-limits based on the data
+            y_min = np.min(y_true)
+            y_max = np.max(y_true)
+            y_range = y_max - y_min
+            ax.set_ylim(y_min - 0.1 * y_range, y_max + 0.1 * y_range)
         return fig
 
 
