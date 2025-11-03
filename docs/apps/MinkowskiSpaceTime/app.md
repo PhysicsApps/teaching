@@ -2,12 +2,10 @@
 authors:
   - ptuemmler
 categories:
-  - Mathematics
-  - Numerics
+  - Physics
 tags:
-  - Code
-  - Fourier Transform
-date: 2025-10-27
+  - Relativity
+date: 2025-11-03
 hide:
   - toc
 draft: true
