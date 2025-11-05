@@ -6,6 +6,7 @@ categories:
   - Physics
 tags:
   - Relativity
+  - Draft
 date: 2025-11-03
 hide:
   - toc

@@ -6,11 +6,11 @@ categories:
 tags:
   - Fourier Transform
   - Draft
-date: 2025-11-02
+date: 2025-11-05
 hide:
   - toc
 draft: true
 ---
-# Fourier Transforms
+# Fractional Derivatives
 <!-- more -->
-{{embed_app("100%", "800px")}}
+{{embed_app("100%", "860px")}}
