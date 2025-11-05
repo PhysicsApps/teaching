@@ -5,6 +5,7 @@ categories:
   - Mathematics
 tags:
   - Fourier Transform
+  - Draft
 date: 2025-11-02
 hide:
   - toc
