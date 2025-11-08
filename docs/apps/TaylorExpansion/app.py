@@ -13,7 +13,8 @@ app_ui = ui.page_sidebar(
             "function",
             "Function f(x)",
             value="cos(x)",
-            placeholder="Enter function like: sin(x), cos(x), exp(x), x**2, etc."
+            placeholder="Enter function like: sin(x), cos(x), exp(x), x**2, etc.",
+            update_on='blur',
         ),
         ui.input_slider(
             "order",
@@ -54,26 +55,27 @@ app_ui = ui.page_sidebar(
 
 def server(input: Inputs, output: Outputs, session: Session):
     @reactive.calc
+    @reactive.calc
     def clean_function():
         """Clean and validate the input function"""
         func_str = input.function().strip()
 
         # Replace common mathematical functions with numpy equivalents
         replacements = {
-            'sin': 'np.sin',
-            'cos': 'np.cos',
-            'tan': 'np.tan',
-            'exp': 'np.exp',
-            'log': 'np.log',
-            'sqrt': 'np.sqrt',
-            'abs': 'np.abs'
+            r'\b(sin)\b': 'np.sin',
+            r'\b(cos)\b': 'np.cos',
+            r'\b(tan)\b': 'np.tan',
+            r'\b(exp)\b': 'np.exp',
+            r'\b(log)\b': 'np.log',
+            r'\b(sqrt)\b': 'np.sqrt',
+            r'\b(abs)\b': 'np.abs',
+            r'\^': '**',  # escaped caret for literal match
         }
 
-        # Apply replacements only to function names (not as part of other words)
-        for old, new in replacements.items():
-            func_str = re.sub(r'\b' + old + r'\b', new, func_str)
+        # Apply all replacements
+        for pattern, replacement in replacements.items():
+            func_str = re.sub(pattern, replacement, func_str)
 
-        # Replace 'x' with the actual variable name for evaluation
         return func_str
 
     @reactive.calc
