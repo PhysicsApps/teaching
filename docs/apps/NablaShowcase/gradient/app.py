@@ -9,20 +9,20 @@ app_ui = ui.page_sidebar(
             "function",
             "Function f(x)",
             value="e**(-x**2 - y**2) * sin(x)",
-            placeholder="Enter function like: sin(x) * cos(y)."
+            placeholder="Enter function like: sin(x) * cos(y).",
+            update_on='blur',
         ),
         ui.input_checkbox('show_gradient', 'Show Gradient', value=True),
         ui.input_checkbox('align_gradient', 'Align Gradient', value=True),
         ui.input_dark_mode(id='dark_mode'),
-        open='always'
     ),
-    ui.card(ui.output_ui("plot"), full_screen=True),
+    ui.output_ui("plot")
 )
 
 
 def server(input: Inputs, output: Outputs, session: Session):
     num_pix = 100
-    limit = 5
+    limit = np.pi
     x_axis = np.linspace(-limit, limit, num_pix)
     y_axis = np.linspace(-limit, limit, num_pix)
     x, y = np.meshgrid(x_axis, y_axis)
@@ -34,20 +34,20 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         # Replace common mathematical functions with numpy equivalents
         replacements = {
-            'sin': 'np.sin',
-            'cos': 'np.cos',
-            'tan': 'np.tan',
-            'exp': 'np.exp',
-            'log': 'np.log',
-            'sqrt': 'np.sqrt',
-            'abs': 'np.abs',
+            r'\b(sin)\b': 'np.sin',
+            r'\b(cos)\b': 'np.cos',
+            r'\b(tan)\b': 'np.tan',
+            r'\b(exp)\b': 'np.exp',
+            r'\b(log)\b': 'np.log',
+            r'\b(sqrt)\b': 'np.sqrt',
+            r'\b(abs)\b': 'np.abs',
+            r'\^': '**',  # escaped caret for literal match
         }
 
-        # Apply replacements only to function names (not as part of other words)
-        for old, new in replacements.items():
-            func_str = re.sub(r'\b' + old + r'\b', new, func_str)
+        # Apply all replacements
+        for pattern, replacement in replacements.items():
+            func_str = re.sub(pattern, replacement, func_str)
 
-        # Replace 'x' with the actual variable name for evaluation
         return func_str
 
     @reactive.calc
@@ -89,11 +89,9 @@ def server(input: Inputs, output: Outputs, session: Session):
                 u=gradient[1][skip].flatten(),
                 v=gradient[0][skip].flatten(),
                 w=np.sqrt(gradient[0][skip].flatten() ** 2 + gradient[1][skip].flatten() ** 2) if input.align_gradient() else np.zeros_like(gradient[0][skip].flatten()),
-                sizemode="absolute",
-                sizeref=0.2,
-                anchor="tip",
-                # colorscale='portland',
-                # showscale=True,
+                sizemode="raw",
+                anchor="tail",
+                hoverinfo='skip',
             )
             if input.show_gradient() else
             go.Surface(
@@ -103,7 +101,9 @@ def server(input: Inputs, output: Outputs, session: Session):
                 colorscale='turbo',
                 colorbar_title_text='f(x,y)',
                 showscale=True,
+                hoverinfo='skip'
             ),
+
         ])
 
         fig.update_layout(
@@ -112,6 +112,9 @@ def server(input: Inputs, output: Outputs, session: Session):
                 xaxis_title='X-axis',
                 yaxis_title='Y-axis',
                 zaxis_title='f(x,y)',
+                xaxis_showspikes=False,
+                yaxis_showspikes=False,
+                zaxis_showspikes=False,
             ),
             height=700,
             margin=dict(l=0, r=0, t=0, b=0),

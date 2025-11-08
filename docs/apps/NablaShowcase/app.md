@@ -4,7 +4,7 @@ authors:
 categories:
   - Mathematics
 tags:
-  - Templates
+  - Calculus
   - Draft
 date: 2025-07-01
 hide:
@@ -14,4 +14,8 @@ hide:
 # Nabla Showcase
 <!-- more -->
 
-{{embed_app("100%", "830px")}}
+## Gradient
+{{embed_app("100%", "830px", "gradient")}}
+
+## Curl
+{{embed_app("100%", "830px", "Curl")}}
