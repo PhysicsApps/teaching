@@ -48,33 +48,47 @@ with ui.layout_sidebar(width="300px", gap="1rem"):
         ui.h4("Values")
         ui.input_slider("l_val", "l value", 0, 5, 0)
         ui.input_slider("m_val", "m value", 0, 5, 0)
-        ui.input_switch("representation", "Alternative representation", False)
+        with ui.panel_conditional('input.tab === "Alternative visualization"'):
+            ui.input_switch("colorscheme", "Phase as surface color", True)
 
-    with ui.card(full_screen=True):
-        ui.card_header("Amplitude and Phase")
+    with ui.navset_pill(id="tab"):
+        with ui.nav_panel("Visualization on sphere"):
+            with ui.card(full_screen=True):
+                @render_plotly
+                def theta_and_phi_plot():
+                    harmonics = compute_harmonics()
+                    theta_vals = harmonics['theta_values']
+                    phi_vals = np.angle(harmonics['phi_values'])
 
-        @render_plotly
-        @reactive.event(input.representation, input.l_val, input.m_val)
-        def theta_and_phi_plot():
-            harmonics = compute_harmonics()
-            theta_vals = harmonics['theta_values']
-            phi_vals = np.angle(harmonics['phi_values'])
+                    phi = np.linspace(0, 2 * np.pi, N)
+                    theta = np.linspace(0, np.pi, N)
+                    PHI, THETA = np.meshgrid(phi, theta)
 
-            phi = np.linspace(0, 2 * np.pi, N)
-            theta = np.linspace(0, np.pi, N)
-            PHI, THETA = np.meshgrid(phi, theta)
+                    # Convert to Cartesian coordinates
+                    X = np.sin(THETA) * np.cos(PHI)
+                    Y = np.sin(THETA) * np.sin(PHI)
+                    Z = np.cos(THETA)
 
-            # Convert to Cartesian coordinates
-            X = np.sin(THETA) * np.cos(PHI)
-            Y = np.sin(THETA) * np.sin(PHI)
-            Z = np.cos(THETA)
+                    #fig = alternative_plot(PHI, THETA, theta_vals, phi_vals, input.colorscheme())
 
-            if input.representation():
-                fig = alternative_plot(PHI, THETA, theta_vals, phi_vals)
-            else:
-                fig = create_plot(X, Y, Z, theta_vals, phi_vals)
+                    fig = create_plot(X, Y, Z, theta_vals, phi_vals)
+                    return fig
 
-            return fig
+        with ui.nav_panel("Alternative visualization"):
+            with ui.card(full_screen=True):
+                @render_plotly
+                def alternative_plot():
+                    harmonics = compute_harmonics()
+                    theta_vals = harmonics['theta_values']
+                    phi_vals = np.angle(harmonics['phi_values'])
+
+                    phi = np.linspace(0, 2 * np.pi, N)
+                    theta = np.linspace(0, np.pi, N)
+                    PHI, THETA = np.meshgrid(phi, theta)
+
+                    fig = create_alternative_plot(PHI, THETA, theta_vals, phi_vals, input.colorscheme())
+
+                    return fig
 
 
 def create_plot(X, Y, Z, theta_vals, phi_vals):
@@ -98,7 +112,8 @@ def create_plot(X, Y, Z, theta_vals, phi_vals):
                 len=0.3,  # Make colorbar 60% of the plot width
             ),
             cmin=-np.max(np.abs(theta_vals)),
-            cmax=np.max(np.abs(theta_vals))
+            cmax=np.max(np.abs(theta_vals)),
+            hoverinfo = 'skip',
         ),
         row=1, col=1
     )
@@ -118,7 +133,8 @@ def create_plot(X, Y, Z, theta_vals, phi_vals):
                 len=0.3,  # Make colorbar 60% of the plot width
             ),
             cmin=-np.pi,
-            cmax=np.pi
+            cmax=np.pi,
+            hoverinfo='skip',
         ),
         row=1, col=2
     )
@@ -128,11 +144,17 @@ def create_plot(X, Y, Z, theta_vals, phi_vals):
         margin=dict(l=0, r=0, b=0, t=0),  # Reduce margins
         scene1=dict(
             aspectmode='cube',
-            camera=dict(eye=dict(x=2.3, y=2.3, z=2.3))
+            camera=dict(eye=dict(x=2.3, y=2.3, z=2.3)),
+            xaxis_showspikes=False,
+            yaxis_showspikes=False,
+            zaxis_showspikes=False
         ),
         scene2=dict(
             aspectmode='cube',
-            camera=dict(eye=dict(x=2.3, y=2.3, z=2.3))
+            camera=dict(eye=dict(x=2.3, y=2.3, z=2.3)),
+            xaxis_showspikes=False,
+            yaxis_showspikes=False,
+            zaxis_showspikes=False
         ),
         height=None,  # Auto height
         width=None,  # Auto width
@@ -140,7 +162,7 @@ def create_plot(X, Y, Z, theta_vals, phi_vals):
 
     return fig
 
-def alternative_plot(PHI, THETA, theta_vals, phi_vals):
+def create_alternative_plot(PHI, THETA, theta_vals, phi_vals, input_colorscheme):
     rho = abs(theta_vals)
     X = rho * np.sin(THETA) * np.cos(PHI)
     Y = rho * np.sin(THETA) * np.sin(PHI)
@@ -150,13 +172,24 @@ def alternative_plot(PHI, THETA, theta_vals, phi_vals):
         specs=[[{'type': 'surface'}]],
     )
 
+    if input_colorscheme:
+        surface_colorscheme = phi_vals
+        surface_colormap = 'icefire'
+        limit = [-np.pi, np.pi]
+        title = 'Phase'
+    else:
+        surface_colorscheme = np.sign(theta_vals)
+        surface_colormap = 'RdBu'
+        limit = [-1, 1]
+        title = 'Amplitude'
+
     fig.add_trace(
         go.Surface(
             x=X, y=Y, z=Z,
-            surfacecolor=phi_vals,
-            colorscale='icefire',
+            surfacecolor=surface_colorscheme,
+            colorscale=surface_colormap,
             colorbar=dict(
-                title="Phase",
+                title=title,
                 orientation="h",  # Make colorbar horizontal
                 y=0.0,  # Place colorbar at the top
                 yanchor="bottom",  # Anchor at bottom of colorbar
@@ -164,9 +197,25 @@ def alternative_plot(PHI, THETA, theta_vals, phi_vals):
                 xanchor="right",  # Anchor at center of colorbar
                 len=0.3,  # Make colorbar 60% of the plot width
             ),
-            cmin=-np.pi,
-            cmax=np.pi
+            cmin=limit[0],
+            cmax=limit[1],
+            hoverinfo='skip',
         )
+    )
+
+    fig.update_layout(
+        autosize=True,  # Enable autosize for responsiveness
+        margin=dict(l=0, r=0, b=0, t=0),  # Reduce margins
+        scene1=dict(
+            aspectmode='cube',
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1.5)),
+            xaxis_showspikes=False,
+            yaxis_showspikes=False,
+            zaxis_showspikes=False
+        ),
+        height=None,  # Auto height
+        width=None,  # Auto width
+
     )
 
     return fig
