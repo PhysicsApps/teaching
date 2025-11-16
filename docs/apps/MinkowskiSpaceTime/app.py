@@ -34,6 +34,8 @@ app_ui = ui.page_sidebar(
             *[ui.nav_panel(id, ui.output_data_frame(f"{id}_event_data_frame")) for id in ["A", "B", "C"]],
             id="tab",
         ),
+        ui.input_slider("x_range", "x-Range", min=-5, max=5, value=[-5, 5]),
+        ui.input_slider("ct_range", "ct-Range", min=-5, max=5, value=[-5, 5]),
         ui.input_dark_mode(id='dark_mode'),
         open='always'
     ),
@@ -51,9 +53,6 @@ def server(input, output, session):
 
     double_click_precision = 1e-1
 
-    x_ct_axis = np.linspace(-5, 5, 251)
-    metric_x, metric_ct = np.meshgrid(x_ct_axis, x_ct_axis)
-    minkowski_metric = metric_ct**2 - metric_x**2
 
     # Update click data when plot is clicked, if same point is clicked - remove it
     @reactive.effect
@@ -78,6 +77,13 @@ def server(input, output, session):
 
     @render.plot()
     def plot():
+
+        x_axis = np.linspace(input.x_range()[0], input.x_range()[1], 251)
+        ct_axis = np.linspace(input.ct_range()[0], input.ct_range()[1], 251)
+        metric_x, metric_ct = np.meshgrid(x_axis, ct_axis)
+        minkowski_metric = metric_ct ** 2 - metric_x ** 2
+
+
         if input.dark_mode() == "dark":
             style_label = 'dark_background'
             blue = 'lightsteelblue'
@@ -101,15 +107,21 @@ def server(input, output, session):
             v = input.velocity()
 
             fig, ax = plt.subplots()
-            ax.set_xlim(-5, 5)
-            ax.set_ylim(-5, 5)
+            ax.set_xlim([x_axis[0], x_axis[-1]])
+            ax.set_ylim([ct_axis[0], ct_axis[-1]])
             ax.xaxis.set_major_locator(ticker.MultipleLocator(base=1))
             ax.yaxis.set_major_locator(ticker.MultipleLocator(base=1))
-            tick_positions = ax.get_xticks()
+            tick_positions = np.arange(-int(max(abs(input.x_range()[0]), abs(input.x_range()[1]),
+                                               abs(input.ct_range()[0]), abs(input.ct_range()[1]))),
+                                       int(max(abs(input.x_range()[0]), abs(input.x_range()[1]),
+                                               abs(input.ct_range()[0]), abs(input.ct_range()[1]))) + 1, 1)
 
             if input.show_minkowski():
-                img = ax.imshow(np.sqrt(np.abs(minkowski_metric)) * np.sign(minkowski_metric), extent=(-5, 5, -5, 5),
-                                origin='lower', cmap=cmap, alpha=alpha)
+                img = ax.imshow(np.sqrt(np.abs(minkowski_metric)) * np.sign(minkowski_metric),
+                                extent=[x_axis[0], x_axis[-1], ct_axis[0], ct_axis[-1]],
+                                origin='lower', cmap=cmap, alpha=alpha,
+                                vmin=-np.max(np.abs(tick_positions)), vmax=np.max(np.abs(tick_positions)))
+
                 cbar=fig.colorbar(img, ax=ax, label=r'Eigenzeit $\sqrt{(c^2t^2 - x^2)}$', ticks=tick_positions)
                 cbar.ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{-int(x)}i" if x < 0 else f"{int(x)}"))
 
@@ -118,18 +130,20 @@ def server(input, output, session):
                 for tick_pos in tick_positions:
                     if tick_pos <= 0:
                         continue
-                    x0 = np.sqrt(x_ct_axis ** 2 + tick_pos ** 2)
-                    ax.plot(x0, x_ct_axis, color='grey', linestyle='--', alpha=0.5)
-                    ax.plot(-x0, x_ct_axis, color='grey', linestyle='--', alpha=0.5)
-                    ax.plot(x_ct_axis, x0, color='grey', linestyle='--', alpha=0.5)
-                    ax.plot(x_ct_axis, -x0, color='grey', linestyle='--', alpha=0.5)
+                    t0 = np.sqrt(x_axis ** 2 + tick_pos ** 2)
+                    x0 = np.sqrt(ct_axis ** 2 + tick_pos ** 2)
+
+                    ax.plot(x0, ct_axis, color='grey', linestyle='--', alpha=0.5)
+                    ax.plot(-x0, ct_axis, color='grey', linestyle='--', alpha=0.5)
+                    ax.plot(x_axis, t0, color='grey', linestyle='--', alpha=0.5)
+                    ax.plot(x_axis, -t0, color='grey', linestyle='--', alpha=0.5)
 
             # Draw axes
             ax.axhline(0, color=blue)
             ax.axvline(0, color=blue)
             # Apply Lorentz transformation to axes
             if v != 0:
-                x_axis_transformed, ct_axis_transformed = lorentz_transform(x_ct_axis, np.zeros_like(x_ct_axis), v)
+                x_axis_transformed, ct_axis_transformed = lorentz_transform(x_axis, np.zeros_like(ct_axis), v)
                 ax.plot(x_axis_transformed, ct_axis_transformed, color=red)
                 ax.plot(ct_axis_transformed, x_axis_transformed, color=red)
 
