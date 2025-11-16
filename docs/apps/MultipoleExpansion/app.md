@@ -12,6 +12,6 @@ hide:
   - toc
 draft: true
 ---
-# Fourier Transforms
+# Multipole expansion
 <!-- more -->
 {{embed_app("100%", "800px")}}

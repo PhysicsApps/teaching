@@ -9,44 +9,36 @@ app_ui = ui.page_sidebar(
         ui.output_plot(
             "charge_density_plot",
             #click=True,
-            width="100%", height="700px"
+            width="200px", height="200px"
         ),
-        ui.input_checkbox(
-            'monopole',
-            'Monopole',
-            value=False,
+        ui.input_select(
+          'charge_scenario',
+            "Select charge distribution",
+            {"monopole": "Monopole", "dipole": "Dipole", "quadrupole": "Quadrupole"},
         ),
-        ui.input_checkbox(
-            'dipole',
-            'Dipole',
-            value=False,
-        ),
-        ui.input_checkbox(
-            'quadrupole',
-            'Quadrupole',
-            value=False,
-        ),
+        # ui.output_text("value"),
+
         ui.input_dark_mode(id='dark_mode'),
         open='always',
     ),
     ui.layout_column_wrap(
         ui.output_plot(
             "monopole_plot",
-            width="100%", height="700px"
+            width="300px", height="300px"
         ),
         ui.output_plot(
             "dipole_plot",
-            width="100%", height="700px"
+            width="300px", height="300px"
         ),
     ),
     ui.layout_column_wrap(
         ui.output_plot(
             "quadrupole_plot",
-            width="100%", height="700px"
+            width="300px", height="300px"
         ),
         ui.output_plot(
             "sum_plot",
-            width="100%", height="700px"
+            width="300px", height="300px"
         ),
     ),
 )
@@ -54,8 +46,6 @@ app_ui = ui.page_sidebar(
 def server(input, output, session):
     # some overall definitions and stuff
     click_data = reactive.value(None)
-    blue = 'navy'
-    red = 'firebrick'
 
     x_axis = np.linspace(-20, 20, 1024)
     x_axis_lims = (-5, 5)
@@ -70,35 +60,57 @@ def server(input, output, session):
             # One could actually calculate everything here and then only use the resulting data in the plots
 
 
+    @render.text
+    def value():
+        return f"{input.charge_scenario()}"
+
+    def set_charges():
+        pointlike_r = []
+        pointlike_charge = []
+
+        blue = 'b'
+        red = 'r'
+
+        moments_Q = 0
+        moments_P = np.array([[0,0,0]])
+        moments_Qij = np.array([[0,0,0],[0,0,0],[0,0,0]])
+
+        if input.charge_scenario() == "monopole":
+            pointlike_r = np.array([[0, 0, 0]])
+            pointlike_charge = [red]
+            moments_Q = 1
+        if input.charge_scenario() == "dipole":
+            pointlike_r = np.array([[-1, 0, 0], [1, 0, 0]])
+            pointlike_charge = [red, blue]
+            moments_P = np.array([[2, 0, 0]])
+        if input.charge_scenario() == "quadrupole":
+            pointlike_r = np.array([[0, 1, 0], [0, -1, 0], [-1, 0, 0], [1, 0, 0]])
+            pointlike_charge = [red, red, blue, blue]
+            moments_Qij = np.array([[-12, 0, 0], [0, 12, 0], [0, 0, 0]])
+        number_of_charges = np.shape(pointlike_r)[0]
+
+        return pointlike_r, pointlike_charge, number_of_charges, moments_Q, moments_P, moments_Qij
+
 
     @render.plot()
     def charge_density_plot():
         if input.dark_mode() == "dark":
             style_label = 'dark_background'
-            blue = 'lightsteelblue'
-            red = 'lightcoral'
         else:
             style_label = 'seaborn-v0_8'
-            blue = 'navy'
-            red = 'firebrick'
+
 
         with plt.style.context(style_label):
-            if input.monopole:
-                pointlike_r = [0, 0, 0]
-                pointlike_charge = [red]
-            if input.dipole:
-                pointlike_r = [[-1, 0, 0],[1, 0, 0]]
-                pointlike_charge = [red, blue]
-            if input.quadrupole:
-                pointlike_r = [[0, 1, 0],[0, -1, 0],[-1, 0, 0],[1, 0, 0]]
-                pointlike_charge = [red, red, blue, blue]
+
+            pointlike_r, pointlike_charge, number_of_charges = set_charges()
 
             fig, axs = plt.subplots()
             axs.set_xlim(-1.5, 1.5)
             axs.set_ylim(-1.5, 1.5)
-            axs.set_zlim(-1.5, 1.5)
 
-            hs = axs.scatter(pointlike_r, color=pointlike_charge, x='X', y='Y', z='Z')
+            for idx_charge in np.arange(number_of_charges):
+                #print(pointlike_charge[])
+                axs.scatter(pointlike_r[idx_charge,0], pointlike_r[idx_charge,1], color=pointlike_charge[idx_charge])
 
             axs.set_title("Charge density")
 
@@ -106,6 +118,9 @@ def server(input, output, session):
 
     @render.plot()
     def monopole_plot():
+
+        pointlike_r, pointlike_charge, number_of_charges, moments_Q, moments_P, moments_Qij = set_charges()
+
         df = load_penguins()
         mass = df["body_mass_g"]
 
