@@ -50,6 +50,7 @@ with ui.layout_sidebar(width="300px", gap="1rem"):
         ui.input_slider("m_val", "m value", 0, 5, 0)
         with ui.panel_conditional('input.tab === "Alternative visualization"'):
             ui.input_switch("colorscheme", "Phase as surface color", True)
+        ui.input_dark_mode(id='dark_mode'),
 
     with ui.navset_pill(id="tab"):
         with ui.nav_panel("Visualization on sphere"):
@@ -97,6 +98,11 @@ def create_plot(X, Y, Z, theta_vals, phi_vals):
         specs=[[{'type': 'surface'}, {'type': 'surface'}]],
     )
 
+    if input.dark_mode() == "dark":
+        template = "plotly_dark"
+    else:
+        template = "plotly_white"
+
     fig.add_trace(
         go.Surface(
             x=X, y=Y, z=Z,
@@ -140,6 +146,7 @@ def create_plot(X, Y, Z, theta_vals, phi_vals):
     )
 
     fig.update_layout(
+        template=template,
         autosize=True,  # Enable autosize for responsiveness
         margin=dict(l=0, r=0, b=0, t=0),  # Reduce margins
         scene1=dict(
@@ -171,6 +178,11 @@ def create_alternative_plot(PHI, THETA, theta_vals, phi_vals, input_colorscheme)
         rows=1, cols=1,
         specs=[[{'type': 'surface'}]],
     )
+
+    if input.dark_mode() == "dark":
+        template = "plotly_dark"
+    else:
+        template = "plotly_white"
 
     if input_colorscheme:
         surface_colorscheme = phi_vals
@@ -204,6 +216,7 @@ def create_alternative_plot(PHI, THETA, theta_vals, phi_vals, input_colorscheme)
     )
 
     fig.update_layout(
+        template=template,
         autosize=True,  # Enable autosize for responsiveness
         margin=dict(l=0, r=0, b=0, t=0),  # Reduce margins
         scene1=dict(
