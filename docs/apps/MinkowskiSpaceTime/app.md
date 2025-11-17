@@ -7,7 +7,9 @@ categories:
 tags:
   - Relativity
   - Draft
-date: 2025-11-03
+date: 
+    created: 2025-11-03
+    updated: 2025-11-17
 hide:
   - toc
 draft: true
