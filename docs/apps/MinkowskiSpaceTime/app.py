@@ -32,9 +32,21 @@ app_ui = ui.page_sidebar(
         ),
         ui.navset_tab(
             *[ui.nav_panel(id, ui.output_data_frame(f"{id}_event_data_frame")) for id in ["A", "B", "C"]],
+            ui.nav_spacer(),
+            ui.nav_control(
+                ui.input_action_button("reset_events", "Reset"),
+            ),
             id="tab",
         ),
+        ui.accordion(
+            ui.accordion_panel("Plot options",
+                ui.input_slider("x_range", "x-Range", min=-5, max=5, value=[-5, 5]),
+                ui.input_slider("ct_range", "ct-Range", min=-5, max=5, value=[-5, 5]),
+                ui.input_checkbox("show_projections", "Show Projections", value=True),
+            ),
+        ),
         ui.input_dark_mode(id='dark_mode'),
+        width='300px',
         open='always'
     ),
     ui.output_plot(
@@ -49,12 +61,6 @@ def server(input, output, session):
     click_data_B = reactive.value(None)
     click_data_C = reactive.value(None)
 
-    double_click_precision = 1e-1
-
-    x_ct_axis = np.linspace(-5, 5, 251)
-    metric_x, metric_ct = np.meshgrid(x_ct_axis, x_ct_axis)
-    minkowski_metric = metric_ct**2 - metric_x**2
-
     # Update click data when plot is clicked, if same point is clicked - remove it
     @reactive.effect
     def _():
@@ -66,18 +72,25 @@ def server(input, output, session):
             else:
                 click_data = click_data_C
 
-            do_nothing = False
-            # if click_data() is not None:
-            #     distance = np.sqrt((click_data()["x"] - input.plot_click()["x"])**2 +
-            #                        (click_data()["y"] - input.plot_click()["y"])**2)
-            #     if distance < double_click_precision:
-            #         click_data.set(None)
-            #         do_nothing = True
-            if not do_nothing:
-                click_data.set(input.plot_click())
+            click_data.set(input.plot_click())
+
+    # Reset click data when reset button is pressed
+    @reactive.effect
+    @reactive.event(input.reset_events)
+    def _():
+        click_data_A.set(None)
+        click_data_B.set(None)
+        click_data_C.set(None)
 
     @render.plot()
     def plot():
+
+        x_axis = np.linspace(input.x_range()[0], input.x_range()[1], 251)
+        ct_axis = np.linspace(input.ct_range()[0], input.ct_range()[1], 251)
+        metric_x, metric_ct = np.meshgrid(x_axis, ct_axis)
+        minkowski_metric = metric_ct ** 2 - metric_x ** 2
+
+
         if input.dark_mode() == "dark":
             style_label = 'dark_background'
             blue = 'lightsteelblue'
@@ -101,15 +114,21 @@ def server(input, output, session):
             v = input.velocity()
 
             fig, ax = plt.subplots()
-            ax.set_xlim(-5, 5)
-            ax.set_ylim(-5, 5)
+            ax.set_xlim([x_axis[0], x_axis[-1]])
+            ax.set_ylim([ct_axis[0], ct_axis[-1]])
             ax.xaxis.set_major_locator(ticker.MultipleLocator(base=1))
             ax.yaxis.set_major_locator(ticker.MultipleLocator(base=1))
-            tick_positions = ax.get_xticks()
+            tick_positions = np.arange(-int(max(abs(input.x_range()[0]), abs(input.x_range()[1]),
+                                               abs(input.ct_range()[0]), abs(input.ct_range()[1]))),
+                                       int(max(abs(input.x_range()[0]), abs(input.x_range()[1]),
+                                               abs(input.ct_range()[0]), abs(input.ct_range()[1]))) + 1, 1)
 
             if input.show_minkowski():
-                img = ax.imshow(np.sqrt(np.abs(minkowski_metric)) * np.sign(minkowski_metric), extent=(-5, 5, -5, 5),
-                                origin='lower', cmap=cmap, alpha=alpha)
+                img = ax.imshow(np.sqrt(np.abs(minkowski_metric)) * np.sign(minkowski_metric),
+                                extent=[x_axis[0], x_axis[-1], ct_axis[0], ct_axis[-1]],
+                                origin='lower', cmap=cmap, alpha=alpha,
+                                vmin=-np.max(np.abs(tick_positions)), vmax=np.max(np.abs(tick_positions)))
+
                 cbar=fig.colorbar(img, ax=ax, label=r'Eigenzeit $\sqrt{(c^2t^2 - x^2)}$', ticks=tick_positions)
                 cbar.ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{-int(x)}i" if x < 0 else f"{int(x)}"))
 
@@ -118,18 +137,20 @@ def server(input, output, session):
                 for tick_pos in tick_positions:
                     if tick_pos <= 0:
                         continue
-                    x0 = np.sqrt(x_ct_axis ** 2 + tick_pos ** 2)
-                    ax.plot(x0, x_ct_axis, color='grey', linestyle='--', alpha=0.5)
-                    ax.plot(-x0, x_ct_axis, color='grey', linestyle='--', alpha=0.5)
-                    ax.plot(x_ct_axis, x0, color='grey', linestyle='--', alpha=0.5)
-                    ax.plot(x_ct_axis, -x0, color='grey', linestyle='--', alpha=0.5)
+                    t0 = np.sqrt(x_axis ** 2 + tick_pos ** 2)
+                    x0 = np.sqrt(ct_axis ** 2 + tick_pos ** 2)
+
+                    ax.plot(x0, ct_axis, color='grey', linestyle='--', alpha=0.5)
+                    ax.plot(-x0, ct_axis, color='grey', linestyle='--', alpha=0.5)
+                    ax.plot(x_axis, t0, color='grey', linestyle='--', alpha=0.5)
+                    ax.plot(x_axis, -t0, color='grey', linestyle='--', alpha=0.5)
 
             # Draw axes
             ax.axhline(0, color=blue)
             ax.axvline(0, color=blue)
             # Apply Lorentz transformation to axes
             if v != 0:
-                x_axis_transformed, ct_axis_transformed = lorentz_transform(x_ct_axis, np.zeros_like(x_ct_axis), v)
+                x_axis_transformed, ct_axis_transformed = lorentz_transform(x_axis, np.zeros_like(ct_axis), v)
                 ax.plot(x_axis_transformed, ct_axis_transformed, color=red)
                 ax.plot(ct_axis_transformed, x_axis_transformed, color=red)
 
@@ -144,61 +165,84 @@ def server(input, output, session):
                 ax.plot(tick_pos, 0, 'o', color=blue)
                 ax.plot(0, tick_pos, 'o', color=blue)
 
-            for stored_click, color in zip([click_data_A(), click_data_B(), click_data_C()],
-                                           [color_A, color_B, color_C]):
+            for stored_click, color, name in zip([click_data_A(), click_data_B(), click_data_C()],
+                                                 [color_A, color_B, color_C],
+                                                 ["A", "B", "C"]):
                 if stored_click is not None:
                     eventx, eventy = stored_click["x"], stored_click["y"]
                     ax.scatter(eventx, eventy, color=color)
-                    # Draw lines from click to axes
-                    ax.plot([eventx, eventx], [0, eventy], color=blue, linestyle=':')
-                    ax.plot([0, eventx], [eventy, eventy], color=blue, linestyle=':')
-
+                    ax.text(eventx, eventy, f" {name}", color="grey", verticalalignment='bottom')
                     x_transformed, y_transformed = lorentz_transform(eventx, eventy, -v)
 
-                    # Draw lines to transformed axes
-                    ref_x_transformed, ref_ct_transformed = lorentz_transform(x_transformed, 0, v)
-                    ax.plot([ref_x_transformed, eventx], [ref_ct_transformed, eventy], color=red, linestyle=':')
-                    ref_x_transformed, ref_ct_transformed = lorentz_transform(0, y_transformed, v)
-                    ax.plot([ref_x_transformed, eventx], [ref_ct_transformed, eventy], color=red, linestyle=':')
+                    if input.show_projections():
+                        # Draw lines from click to axes
+                        ax.plot([eventx, eventx], [0, eventy], color=blue, linestyle=':')
+                        ax.plot([0, eventx], [eventy, eventy], color=blue, linestyle=':')
 
-            ax.set_xlabel("x")
-            ax.set_ylabel("ct")
+                        # Draw lines to transformed axes
+                        if v != 0:
+                            ref_x_transformed, ref_ct_transformed = lorentz_transform(x_transformed, 0, v)
+                            ax.plot([ref_x_transformed, eventx], [ref_ct_transformed, eventy], color=red, linestyle=':')
+                            ref_x_transformed, ref_ct_transformed = lorentz_transform(0, y_transformed, v)
+                            ax.plot([ref_x_transformed, eventx], [ref_ct_transformed, eventy], color=red, linestyle=':')
+
+            ax.set_xlabel("x in light-seconds")
+            ax.set_ylabel("ct in light-seconds")
             ax.set_aspect('equal')
         return fig
 
     @render.data_frame
     def A_event_data_frame():
-        df = get_pdDataFrame(click_data_A(), input.velocity())
-        return render.DataTable(df)
+        df, styles = get_pdDataFrame(click_data_A(), input.velocity(), input.dark_mode())
+        return render.DataTable(df, height='150px', styles=styles)
+
 
     @render.data_frame
     def B_event_data_frame():
-        df = get_pdDataFrame(click_data_B(), input.velocity())
-        return render.DataTable(df)
+        df, styles = get_pdDataFrame(click_data_B(), input.velocity(), input.dark_mode())
+        return render.DataTable(df, height='150px', styles=styles)
 
     @render.data_frame
     def C_event_data_frame():
-        df = get_pdDataFrame(click_data_C(), input.velocity())
-        return render.DataTable(df)
-    #Use modules to clean this up :)
+        df, styles = get_pdDataFrame(click_data_C(), input.velocity(), input.dark_mode())
+        return render.DataTable(df, height='150px', styles=styles)
 
-    def get_pdDataFrame(click_data, velocity):
+    #Look up how to use modules from shiny to clean this up :)
+
+    def get_pdDataFrame(click_data, velocity, mode):
         if click_data is not None:
             x, t = lorentz_transform(click_data["x"], click_data["y"], -velocity)
             self_time = (t**2 - x**2)**0.5
             df = pd.DataFrame({
                 " ": [r"x", r"ct", r"tau"],
-                "rest": [f"{click_data["x"]:.1f}", f"{click_data["y"]:.1f}", f"{np.imag(self_time):.1f}i" if np.imag(self_time) != 0 else f"{self_time:.1f}"],
-                "moving": [f"{x:.1f}", f"{t:.1f}", f"{np.imag(self_time):.1f}i" if np.imag(self_time) != 0 else f"{self_time:.1f}"],
+                "rest": [f"{click_data["x"]:.2f}", f"{click_data["y"]:.2f}", f"{np.imag(self_time):.2f}i" if np.imag(self_time) != 0 else f"{self_time:.2f}"],
+                "moving": [f"{x:.2f}", f"{t:.2f}", f"{np.imag(self_time):.2f}i" if np.imag(self_time) != 0 else f"{self_time:.2f}"],
             })
-            #}, index=["x", "ct", "tau"])
         else:
             df = pd.DataFrame({
                 " ": [r"x", r"ct", r"tau"],
                 "rest": ['-', '-', '-'],
                 "moving": ['-', '-', '-'],
             })
-        return df
+
+        if mode == "dark":
+            blue = 'lightsteelblue'
+            red = 'lightcoral'
+        else:
+            blue = 'navy'
+            red = 'firebrick'
+
+        styles = [
+            {
+                "cols": [1],  # First column
+                "style": {"color": blue}
+            },
+            {
+                "cols": [2],  # Second column
+                "style": {"color": red}
+            }
+        ]
+        return df, styles
 
 
 def lorentz_transform(x, t, v):
