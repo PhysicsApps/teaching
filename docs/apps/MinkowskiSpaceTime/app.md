@@ -16,4 +16,5 @@ draft: true
 ---
 # Minkowski Space-Time
 <!-- more -->
-{{embed_app("100%", "800px")}}
+{{embed_app("100%", "800px", "stationary")}}
+{{embed_app("100%", "800px", "motion")}}
