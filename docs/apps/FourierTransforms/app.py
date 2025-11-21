@@ -71,8 +71,6 @@ app_ui = ui.page_sidebar(
 
 def server(input, output, session):
     click_data = reactive.value(None)
-    blue = 'navy'
-    red = 'firebrick'
 
     x_axis = np.linspace(-20, 20, 1024)
     freq_axis = np.fft.fftfreq(len(x_axis), d=(x_axis[1] - x_axis[0]))
