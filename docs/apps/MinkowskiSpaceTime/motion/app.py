@@ -12,6 +12,7 @@ max_iterations = 1e6
 
 app_ui = ui.page_sidebar(
     ui.sidebar(
+        ui.input_radio_buttons("frame_of_reference", "Frame of reference", choices={"rest": "rest", "motion": "motion"}, selected="rest", inline=True),
         ui.input_slider("frame", "Self time", min=0, max=1, value=0, step=0.5, animate=True),
         ui.input_slider("turning_point", "Turning point (in light-seconds)", min=1, max=20, value=10, step=0.1),
         ui.input_slider("acceleration", "Proper acceleration (in c/s)", min=0.01, max=0.25, value=0.15, step=0.001),
@@ -30,6 +31,50 @@ app_ui = ui.page_sidebar(
         width="100%", height="700px"
     ),
 )
+
+
+def hypTStep(dt, v0, x0, tau0, g):
+    ## Hyperbolic step.
+    ## If an object has proper acceleration g and starts at position x0 with speed v0 and proper time tau0
+    ## as seen from an inertial frame, then return the new v, x, tau after time dt has elapsed.
+    if g == 0:
+        return v0, x0 + v0 * dt, tau0 + dt * (1. - v0 ** 2) ** 0.5
+
+    tinit = v0 / (g * (1 - v0 ** 2) ** 0.5)
+    B = (1 + (g ** 2 * (dt + tinit) ** 2)) ** 0.5
+
+    v1 = g * (dt + tinit) / B
+    x1 = x0 + (1.0 / g) * (B - 1. / (1. - v0 ** 2) ** 0.5)
+    tau1 = tau0 + (np.arcsinh(g * (dt + tinit)) - np.arcsinh(g * tinit)) / g
+    return v1, x1, tau1
+
+def tauStep(dtau, v0, x0, t0, g):
+    ## linear step in proper time of clock.
+    ## If an object has proper acceleration g and starts at position x0 with speed v0 at time t0
+    ## as seen from an inertial frame, then return the new v, x, t after proper time dtau has elapsed.
+
+    ## Compute how much t will change given a proper-time step of dtau
+    gamma = (1. - v0 ** 2) ** -0.5
+    if g == 0:
+        dt = dtau * gamma
+    else:
+        v0g = v0 * gamma
+        dt = (np.sinh(dtau * g + np.arcsinh(v0g)) - v0g) / g
+
+    # return v0 + dtau * g, x0 + v0*dt, t0 + dt
+    v1, x1, t1 = hypTStep(dt, v0, x0, t0, g)
+    return v1, x1, t0 + dt
+
+def lorentz_transform(x, t, v):
+    c = 1 # velocity of light v will be in units of c
+    gamma = 1 / (1 - (v**2 / c**2))**0.5
+    x_prime = gamma * (x + v * t)
+    t_prime = gamma * (t + (v * x) / c**2)
+    return x_prime, t_prime
+
+def ceil_to_next_multiple(value, multiple):
+    return np.ceil(value / multiple) * multiple
+
 def server(input, output, session):
     simulation_data = reactive.Value(pd.DataFrame())
 
@@ -74,7 +119,7 @@ def server(input, output, session):
                 return
 
             # Keep appending zeros until max_time is reached
-            while proper_times[-1] < max_time:
+            while proper_times[-1] < ceil_to_next_multiple(max_time, 5) + dtau:
                 velocities.append(0.0)
                 positions.append(0.0)
                 times.append(times[-1] + dtau)
@@ -98,7 +143,7 @@ def server(input, output, session):
                 's_velocity': stationary_velocities,
                 's_proper_time': stationary_proper_times,
             })
-        ui.update_slider("frame", max=np.ceil((len(data)-1) * dtau) - 1, value=0)
+        ui.update_slider("frame", max=ceil_to_next_multiple(max_time, 5), value=0)
         simulation_data.set(data)
 
 
@@ -110,7 +155,7 @@ def server(input, output, session):
             red = 'lightcoral'
             cmap = berlin
         else:
-            style_label = 'seaborn-v0_8'
+            style_label = 'default'
             blue = 'navy'
             red = 'firebrick'
             cmap = 'RdBu_r'
@@ -157,46 +202,7 @@ def server(input, output, session):
                     else:
                         ax.text(x, t, f'    τ={tau:.0f}s', color=color, verticalalignment='center', horizontalalignment='left')
                     ax.scatter(x, t, color=color, marker='x')
-
+            ax.axis('off')
         return fig
-
-def hypTStep(dt, v0, x0, tau0, g):
-    ## Hyperbolic step.
-    ## If an object has proper acceleration g and starts at position x0 with speed v0 and proper time tau0
-    ## as seen from an inertial frame, then return the new v, x, tau after time dt has elapsed.
-    if g == 0:
-        return v0, x0 + v0 * dt, tau0 + dt * (1. - v0 ** 2) ** 0.5
-
-    tinit = v0 / (g * (1 - v0 ** 2) ** 0.5)
-    B = (1 + (g ** 2 * (dt + tinit) ** 2)) ** 0.5
-
-    v1 = g * (dt + tinit) / B
-    x1 = x0 + (1.0 / g) * (B - 1. / (1. - v0 ** 2) ** 0.5)
-    tau1 = tau0 + (np.arcsinh(g * (dt + tinit)) - np.arcsinh(g * tinit)) / g
-    return v1, x1, tau1
-
-def tauStep(dtau, v0, x0, t0, g):
-    ## linear step in proper time of clock.
-    ## If an object has proper acceleration g and starts at position x0 with speed v0 at time t0
-    ## as seen from an inertial frame, then return the new v, x, t after proper time dtau has elapsed.
-
-    ## Compute how much t will change given a proper-time step of dtau
-    gamma = (1. - v0 ** 2) ** -0.5
-    if g == 0:
-        dt = dtau * gamma
-    else:
-        v0g = v0 * gamma
-        dt = (np.sinh(dtau * g + np.arcsinh(v0g)) - v0g) / g
-
-    # return v0 + dtau * g, x0 + v0*dt, t0 + dt
-    v1, x1, t1 = hypTStep(dt, v0, x0, t0, g)
-    return v1, x1, t0 + dt
-
-def lorentz_transform(x, t, v):
-    c = 1 # velocity of light v will be in units of c
-    gamma = 1 / (1 - (v**2 / c**2))**0.5
-    x_prime = gamma * (x + v * t)
-    t_prime = gamma * (t + (v * x) / c**2)
-    return x_prime, t_prime
 
 app = App(app_ui, server, debug=True)
