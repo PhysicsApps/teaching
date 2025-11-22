@@ -9,6 +9,12 @@ berlin_cmap = [[0.621082, 0.690182, 0.999507],[0.612157, 0.689228, 0.995374],[0.
 berlin = LinearSegmentedColormap.from_list('berlin', berlin_cmap, N=256)
 max_iterations = 1e6
 
+# Generate random events for background defined in stationary frame
+num_random_events = 1000
+random_generator = np.random.default_rng(42)
+random_t = random_generator.uniform(-30, 200, num_random_events)
+random_x = random_generator.uniform(-30, 30, num_random_events)
+random_points = np.array([random_x, random_t])
 
 app_ui = ui.page_sidebar(
     ui.sidebar(
@@ -77,6 +83,7 @@ def ceil_to_next_multiple(value, multiple):
 
 def server(input, output, session):
     simulation_data = reactive.Value(pd.DataFrame())
+    random_points = reactive.Value(np.array([0, 0]))
 
     @reactive.effect
     def _():
@@ -107,6 +114,7 @@ def server(input, output, session):
                     g = 0  # Stop acceleration at origin
                     v_new, x_new, t_new = [0.0, 0.0, times[-1] + (dtau * (1. - velocities[-1] ** 2) ** 0.5)]
                     max_time = t_new
+                    ceiled_max_time = ceil_to_next_multiple(max_time, 5)
 
                 velocities.append(v_new)
                 positions.append(x_new)
@@ -119,7 +127,7 @@ def server(input, output, session):
                 return
 
             # Keep appending zeros until max_time is reached
-            while proper_times[-1] < ceil_to_next_multiple(max_time, 5) + dtau:
+            while proper_times[-1] < ceiled_max_time + dtau:
                 velocities.append(0.0)
                 positions.append(0.0)
                 times.append(times[-1] + dtau)
@@ -143,9 +151,8 @@ def server(input, output, session):
                 's_velocity': stationary_velocities,
                 's_proper_time': stationary_proper_times,
             })
-        ui.update_slider("frame", max=ceil_to_next_multiple(max_time, 5), value=0)
+        ui.update_slider("frame", max=ceiled_max_time, value=0)
         simulation_data.set(data)
-
 
     @render.plot()
     def plot():
@@ -162,47 +169,93 @@ def server(input, output, session):
 
         with plt.style.context(style_label):
             fig, ax = plt.subplots()
-            #
             data = simulation_data()
-            ax.scatter(data['m_position'], data['m_time'], c=data['m_velocity'], vmin=-1, vmax=1, cmap=cmap)
-            ax.plot(data['m_position'], data['m_time'], color='grey')
-
-            cbar = fig.colorbar(plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=-1, vmax=1)), ax=ax)
-            cbar.set_label('Velocity (in units of c)')
 
             # Draw axes of moving observer of current frame
-
             frametime = input.frame()
             frame_data = lambda: data.iloc[(data['m_proper_time'] - frametime).abs().argsort()[:1]].squeeze()
-            ax.axline((frame_data()['m_position'], frame_data()['m_time']), slope=frame_data()['m_velocity'], color=red)
-            ax.axline((frame_data()['m_position'], frame_data()['m_time']), slope=np.tan(np.pi/2 - np.atan(frame_data()['m_velocity'])), color=red)
+            times = np.arange(0, ceil_to_next_multiple(data['m_proper_time'].max(), 5) + 1, 5)
 
-            # Draw axes
-            ax.axhline(frametime, color=blue)
-            ax.axvline(0, color=blue)
-            ax.axvline(input.turning_point(), color='grey', linestyle='--', zorder=-1)
+            if input.frame_of_reference() == 'rest':
+                shift_pos, shift_time = frame_data()['s_position'], frame_data()['s_time']
 
-            ax.set_xlabel("x in light-seconds")
-            ax.set_ylabel("ct in light-seconds")
+                ax.scatter(data['m_position'] - shift_pos, data['m_time'] - shift_time, c=data['m_velocity'], vmin=-1, vmax=1, cmap=cmap)
+                ax.plot(data['m_position'] - shift_pos, data['m_time'] - shift_time, color='grey')
+                ax.plot(data['s_position'] - shift_pos, data['s_time'] - shift_time, color=blue)
 
-            # Pad the limits a bit
-            ylim = ax.get_ylim()
-            ax.set_xlim(ylim[0] - 2, ylim[1] + 2)
-            ax.set_ylim(ylim[0] - 2, ylim[1] + 2)
-            ax.set_aspect('equal')
+                cbar = fig.colorbar(plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=-1, vmax=1)), ax=ax)
+                cbar.set_label('Velocity (in units of c)')
 
-            times = ax.get_yticks()
-            for prefix, color in [('s', blue), ('m', red)]:
-                # Interpolate positions of moving observer at these times to plot self times
-                times_at_this_proper_time = np.interp(times, data[prefix + '_proper_time'], data[prefix + '_time'], left=np.nan, right=np.nan)
-                positions_at_times = np.interp(times_at_this_proper_time, data[prefix + '_time'], data[prefix + '_position'], left=np.nan, right=np.nan)
-                for t, x, tau in zip(times_at_this_proper_time, positions_at_times, times):
-                    if prefix is 's':
-                        ax.text(x, t, f'τ={tau:.0f}s    ', color=color, verticalalignment='center', horizontalalignment='right',)
-                    else:
-                        ax.text(x, t, f'    τ={tau:.0f}s', color=color, verticalalignment='center', horizontalalignment='left')
-                    ax.scatter(x, t, color=color, marker='x')
+                ax.scatter([frame_data()['m_position'] - shift_pos], [frame_data()['m_time'] - shift_time], color='grey', marker='o', zorder=5)
+                ax.scatter([frametime - shift_time], [0 - shift_pos], color='grey', marker='o', zorder=5)
+
+                # # Draw axes
+                # ax.axline((frame_data()['m_position'] - shift_pos, frame_data()['m_time'] - shift_time), slope=frame_data()['m_velocity'], color=red)
+                # ax.axline((frame_data()['m_position'] - shift_pos, frame_data()['m_time'] - shift_time), slope=np.tan(np.pi/2 - np.atan(frame_data()['m_velocity'])), color=red)
+                # ax.axhline(frametime - shift_time, color=blue)
+                # ax.axvline(0 - shift_pos, color=blue)
+
+                # ax.axvline(input.turning_point() - shift_pos, color='grey', linestyle='--', zorder=-1)
+
+                for prefix, color in [('s', blue), ('m', red)]:
+                    # Interpolate positions of moving observer at these times to plot self times
+                    times_at_this_proper_time = np.interp(times, data[prefix + '_proper_time'], data[prefix + '_time'], left=np.nan, right=np.nan)
+                    positions_at_times = np.interp(times_at_this_proper_time, data[prefix + '_time'], data[prefix + '_position'], left=np.nan, right=np.nan)
+                    for t, x, tau in zip(times_at_this_proper_time, positions_at_times, times):
+                        if prefix is 's':
+                            ax.text(x - shift_pos, t - shift_time, f'τ={tau:.0f}s    ', color=color, verticalalignment='center', horizontalalignment='right', clip_on=True)
+                        else:
+                            ax.text(x - shift_pos, t - shift_time, f'    τ={tau:.0f}s', color=color, verticalalignment='center', horizontalalignment='left', clip_on=True)
+                        ax.scatter(x - shift_pos, t - shift_time, color=color, marker='x')
+
+                # Plot random events in background
+                ax.scatter(random_x - shift_pos, random_t - shift_time, color='grey', s=1, alpha=0.5, zorder=-1)
+
+            else:  # frame of reference is motion
+                # For this we have to Lorentz transform all points into the moving frame at the selected self time
+                v_frame = frame_data()['m_velocity']
+                shift_pos, shift_time = frame_data()['m_position'], frame_data()['m_time']
+                m_x_prime, m_t_prime = lorentz_transform(data['m_position'] - shift_pos, data['m_time'] - shift_time, -v_frame)
+                s_x_prime, s_t_prime = lorentz_transform(data['s_position'] - shift_pos, data['s_time'] - shift_time, -v_frame)
+                ax.scatter(m_x_prime, m_t_prime, c=data['m_velocity'], vmin=-1, vmax=1, cmap=cmap)
+
+                cbar = fig.colorbar(plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=-1, vmax=1)), ax=ax)
+                cbar.set_label('Velocity (in units of c)')
+                ax.plot(m_x_prime, m_t_prime, color='grey')
+                ax.plot(s_x_prime, s_t_prime, color=blue)
+
+                ax.scatter([0], [0], color='grey', marker='o', zorder=5)
+
+                tmp = np.interp(frametime, data['m_proper_time'], s_t_prime, left=np.nan, right=np.nan)
+                ax.scatter([np.interp(tmp, s_t_prime, s_x_prime, left=np.nan, right=np.nan)], [tmp], color='grey', marker='o', zorder=5)
+                # # Draw axes
+                # ax.axhline(0, color=red)
+                # ax.axvline(0, color=red)
+
+                for (pos, time, proper_time), color in [((s_x_prime, s_t_prime, data['s_proper_time']), blue), ((m_x_prime, m_t_prime, data['m_proper_time']), red)]:
+                    # Interpolate positions of moving observer at these times to plot self times
+                    times_at_this_proper_time = np.interp(times, proper_time, time, left=np.nan, right=np.nan)
+                    positions_at_times = np.interp(times_at_this_proper_time, time, pos, left=np.nan, right=np.nan)
+                    for t, x, tau in zip(times_at_this_proper_time, positions_at_times, times):
+                        if color is blue: # Shift not needed here, as the transformed data is already centered
+                            ax.text(x, t, f'τ={tau:.0f}s    ', color=color, verticalalignment='center', horizontalalignment='right', clip_on=True)
+                        else:
+                            ax.text(x, t, f'    τ={tau:.0f}s', color=color, verticalalignment='center', horizontalalignment='left', clip_on=True)
+                        ax.scatter(x, t, color=color, marker='x')
+
+                # Also transform random points
+                r_x_prime, r_t_prime = lorentz_transform(random_x - shift_pos, random_t - shift_time, -v_frame)
+                ax.scatter(r_x_prime, r_t_prime, color='grey', s=1, alpha=0.5, zorder=-1)
+
+            if frametime == 0:
+                xlim = np.max([times[-1] * 0.5, input.turning_point() * 1.5])
+                ax.set_xlim(-xlim, xlim)
+                ax.set_ylim(-5, times[-1] + 5)
+            else:
+                ax.set_xlim(-input.turning_point() * 1.3, input.turning_point() * 1.3)
+                ax.set_ylim(-input.turning_point() * 1.3, input.turning_point() * 1.3)
             ax.axis('off')
+            ax.set_aspect('equal')
         return fig
 
 app = App(app_ui, server, debug=True)
