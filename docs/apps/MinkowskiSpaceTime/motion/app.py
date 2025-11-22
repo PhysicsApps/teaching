@@ -10,10 +10,16 @@ berlin = LinearSegmentedColormap.from_list('berlin', berlin_cmap, N=256)
 max_iterations = 1e6
 
 # Generate random events for background defined in stationary frame
-num_random_events = 1000
 random_generator = np.random.default_rng(42)
-random_t = random_generator.uniform(-30, 200, num_random_events)
-random_x = random_generator.uniform(-30, 30, num_random_events)
+
+# num_random_events = int(1e3) # Reasonable for rest frame
+# random_t = random_generator.uniform(-30, 200, num_random_events)
+# random_x = random_generator.uniform(-30, 30, num_random_events)
+
+
+num_random_events = int(1e6)
+random_t = random_generator.uniform(-1000, 1000, num_random_events)
+random_x = random_generator.uniform(-1000, 1000, num_random_events)
 random_points = np.array([random_x, random_t])
 
 app_ui = ui.page_sidebar(
@@ -174,6 +180,7 @@ def server(input, output, session):
             # Draw axes of moving observer of current frame
             frametime = input.frame()
             frame_data = lambda: data.iloc[(data['m_proper_time'] - frametime).abs().argsort()[:1]].squeeze()
+            v_frame = frame_data()['m_velocity']
             times = np.arange(0, ceil_to_next_multiple(data['m_proper_time'].max(), 5) + 1, 5)
 
             if input.frame_of_reference() == 'rest':
@@ -184,7 +191,6 @@ def server(input, output, session):
                 ax.plot(data['s_position'] - shift_pos, data['s_time'] - shift_time, color=blue)
 
                 cbar = fig.colorbar(plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=-1, vmax=1)), ax=ax)
-                cbar.set_label('Velocity (in units of c)')
 
                 ax.scatter([frame_data()['m_position'] - shift_pos], [frame_data()['m_time'] - shift_time], color='grey', marker='o', zorder=5)
                 ax.scatter([frametime - shift_time], [0 - shift_pos], color='grey', marker='o', zorder=5)
@@ -213,14 +219,12 @@ def server(input, output, session):
 
             else:  # frame of reference is motion
                 # For this we have to Lorentz transform all points into the moving frame at the selected self time
-                v_frame = frame_data()['m_velocity']
                 shift_pos, shift_time = frame_data()['m_position'], frame_data()['m_time']
                 m_x_prime, m_t_prime = lorentz_transform(data['m_position'] - shift_pos, data['m_time'] - shift_time, -v_frame)
                 s_x_prime, s_t_prime = lorentz_transform(data['s_position'] - shift_pos, data['s_time'] - shift_time, -v_frame)
                 ax.scatter(m_x_prime, m_t_prime, c=data['m_velocity'], vmin=-1, vmax=1, cmap=cmap)
 
                 cbar = fig.colorbar(plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=-1, vmax=1)), ax=ax)
-                cbar.set_label('Velocity (in units of c)')
                 ax.plot(m_x_prime, m_t_prime, color='grey')
                 ax.plot(s_x_prime, s_t_prime, color=blue)
 
@@ -246,6 +250,15 @@ def server(input, output, session):
                 # Also transform random points
                 r_x_prime, r_t_prime = lorentz_transform(random_x - shift_pos, random_t - shift_time, -v_frame)
                 ax.scatter(r_x_prime, r_t_prime, color='grey', s=1, alpha=0.5, zorder=-1)
+
+            top_speed = np.max(np.abs(data['m_velocity']))
+            cbar.ax.axhline(top_speed, color='grey', linestyle='--')
+            cbar.ax.text(0, top_speed, 'max  ', color='grey', verticalalignment='center', horizontalalignment='right')
+            cbar.ax.axhline(-top_speed, color='grey', linestyle='--')
+            cbar.ax.text(0, -top_speed, 'max  ', color='grey', verticalalignment='center', horizontalalignment='right')
+            cbar.ax.axhline(v_frame, color='grey')
+
+            cbar.set_label('Velocity (in units of c)')
 
             if frametime == 0:
                 xlim = np.max([times[-1] * 0.5, input.turning_point() * 1.5])
