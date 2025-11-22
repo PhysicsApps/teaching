@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, Normalize
 import numpy as np
 import pandas as pd
 from shiny import App, render, ui, reactive
@@ -12,16 +12,18 @@ max_iterations = 1e6
 
 app_ui = ui.page_sidebar(
     ui.sidebar(
-        ui.input_slider("frame", "Self time", min=0, max=1, value=0, step=0.5, animate=True),
-        ui.input_slider("turning_point", "Turning point (in light-seconds)", min=1, max=20, value=10, step=0.1),
-        ui.input_slider("acceleration", "Proper acceleration (in c/s)", min=0.01, max=0.25, value=0.15, step=0.001),
-        ui.input_dark_mode(id='dark_mode'),
-        ui.accordion(
-            ui.accordion_panel('Advanced settings',
-                               ui.input_slider("dtau", "Proper time step (log10)", min=-5, max=-1, value=-2, step=0.1),
-                               ),
-            open=False,
+        ui.input_slider(
+            "velocity",
+            "Velocity (units of c)",
+            min=-0.9,
+            max=0.9,
+            value=0.5,
+            step=0.01,
+            animate=True
         ),
+        ui.input_slider("period", "Period of signal (self time)", min=1, max=3, value=2, step=0.1, animate=True),
+        ui.input_radio_buttons("signal_type", "Signal type", choices={"ping": "ping", "periodic": "periodic"}, selected="periodic", inline=True),
+        ui.input_dark_mode(id='dark_mode'),
         open='always'
     ),
     ui.output_plot(
@@ -30,77 +32,25 @@ app_ui = ui.page_sidebar(
         width="100%", height="700px"
     ),
 )
+
+
+def lorentz_transform(x, t, v):
+    c = 1 # velocity of light v will be in units of c
+    gamma = 1 / (1 - (v**2 / c**2))**0.5
+    x_prime = gamma * (x + v * t)
+    t_prime = gamma * (t + (v * x) / c**2)
+    return x_prime, t_prime
+
+
+def mirrored(maxval, inc=1):
+    x = np.arange(inc, maxval, inc)
+    return np.r_[-x[::-1], 0, x]
+
+
 def server(input, output, session):
-    simulation_data = reactive.Value(pd.DataFrame())
-
-    @reactive.effect
-    def _():
-        dtau = 10 ** input.dtau()
-        g = input.acceleration()     # proper acceleration of the moving observer
-
-        with ui.Progress(min=0, max=1) as p:
-            p.set(message="Calculation in progress")
-            # Initialize arrays to hold data
-            times = [0.0]
-            positions = [0.0]
-            velocities = [0.0]
-            proper_times = [0.0]
-
-            reached_first_turning_point = False
-            reached_second_turning_point = False
-            # Simulate motion of the accelerating observer
-            count = 0
-            while g != 0 and count < max_iterations:
-                v_new, x_new, t_new = tauStep(dtau, velocities[-1], positions[-1], times[-1], g)
-                if x_new >= input.turning_point()/2 and not reached_first_turning_point and not reached_second_turning_point:
-                    reached_first_turning_point = True
-                    g = -g  # Reverse acceleration at turning point
-                elif x_new <= input.turning_point()/2 and reached_first_turning_point and not reached_second_turning_point:
-                    reached_second_turning_point = True
-                    g = -g  # Reverse acceleration to head back toward origin
-                if x_new <= 0 and reached_second_turning_point:
-                    g = 0  # Stop acceleration at origin
-                    v_new, x_new, t_new = [0.0, 0.0, times[-1] + (dtau * (1. - velocities[-1] ** 2) ** 0.5)]
-                    max_time = t_new
-
-                velocities.append(v_new)
-                positions.append(x_new)
-                times.append(t_new)
-                proper_times.append(proper_times[-1] + dtau)
-                count += 1
-
-            if count >= max_iterations:
-                ui.notification_show("Maximum number of iterations reached. Consider increasing the proper time step.", type="error")
-                return
-
-            # Keep appending zeros until max_time is reached
-            while proper_times[-1] < max_time:
-                velocities.append(0.0)
-                positions.append(0.0)
-                times.append(times[-1] + dtau)
-                proper_times.append(proper_times[-1] + dtau)
-
-            final_count = len(times)
-
-            # Fill trivial case of no acceleration
-            stationary_times = np.arange(0, final_count, 1) * dtau
-            stationary_positions = np.zeros(final_count)
-            stationary_velocities = np.zeros(final_count)
-            stationary_proper_times = np.arange(0, final_count, 1) * dtau
-
-            data = pd.DataFrame({
-                'm_time': times,
-                'm_position': positions,
-                'm_velocity': velocities,
-                'm_proper_time': proper_times,
-                's_time': stationary_times,
-                's_position': stationary_positions,
-                's_velocity': stationary_velocities,
-                's_proper_time': stationary_proper_times,
-            })
-        ui.update_slider("frame", max=np.ceil((len(data)-1) * dtau) - 1, value=0)
-        simulation_data.set(data)
-
+    tlimits = (-10, 10)
+    points_per_period = 12
+    color_norm = Normalize(vmin=-1, vmax=1)
 
     @render.plot()
     def plot():
@@ -113,90 +63,85 @@ def server(input, output, session):
             style_label = 'seaborn-v0_8'
             blue = 'navy'
             red = 'firebrick'
-            cmap = 'RdBu_r'
+            cmap = plt.get_cmap('RdBu_r')
 
         with plt.style.context(style_label):
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplot_mosaic([['minkowski', 'sender'], ['minkowski', 'receiver']])
+
+            v = input.velocity()
+            period = input.period()
+
+            signal_times = mirrored(tlimits[1], inc=period)
+            if input.signal_type() == 'ping':
+                signal_amplitude = np.ones_like(signal_times)
+            else: # input.signal_type() == 'periodic':
+                signal_times = np.linspace(signal_times[0], signal_times[-1], points_per_period * (len(signal_times) - 1) + 1)
+                signal_amplitude = np.cos(2 * np.pi * signal_times / period)
+
+            for indx, signal in enumerate(signal_times):
+
+                if input.signal_type() == 'ping':
+                    color = 'grey'
+                else: # input.signal_type() == 'periodic':
+                    # Color line according to amplitude by mapping to colormap between -1 and 1
+                    color = cmap(color_norm(signal_amplitude[indx]))
+
+                ax['sender'].plot([signal, signal], [0, signal_amplitude[indx]], color=color)
+
+                ct_axis_transformed, x_axis_transformed = lorentz_transform(signal, 0, v)
+
+                sign = np.sign(signal) * np.sign(v)
+
+                intersection = ct_axis_transformed + sign * x_axis_transformed
+
+                # Extend signal to receiver worldline with slope 1
+                ax['minkowski'].plot([x_axis_transformed , 0], [ct_axis_transformed, intersection], color=color)
+                ax['receiver'].plot([intersection, intersection], [0, signal_amplitude[indx]], color=color)
+
+
+            ax['minkowski'].axvline(0, color=blue, label='Reciever worldline')
+            ax['minkowski'].axline((0, 0), slope=np.tan(np.pi/2 - np.atan(v)), color=red, label='Sender worldline')
+
+            ax['sender'].axhline(0, color=red)
+            ax['sender'].axvline(0, color=red)
+            ax['receiver'].axhline(0, color=blue)
+            ax['receiver'].axvline(0, color=blue)
+
+            ax['sender'].set_title("Sender Frame (in motion)")
+            ax['receiver'].set_title("Receiver Frame (at rest)")
+            ax['minkowski'].set_title("Minkowski Spacetime Diagram")
+
+            ax['sender'].set_xlabel("sender self time in seconds")
+            ax['sender'].set_ylabel("signal amplitude")
+            ax['receiver'].set_xlabel("receiver self time in seconds")
+            ax['receiver'].set_ylabel("signal amplitude")
             #
-            data = simulation_data()
-            ax.scatter(data['m_position'], data['m_time'], c=data['m_velocity'], vmin=-1, vmax=1, cmap=cmap)
-            ax.plot(data['m_position'], data['m_time'], color='grey')
+            ax['minkowski'].set_xlabel("x in light-seconds")
+            ax['minkowski'].set_ylabel("ct in light-seconds")
+            ax['minkowski'].set_aspect('equal')
 
-            cbar = fig.colorbar(plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=-1, vmax=1)), ax=ax)
-            cbar.set_label('Velocity (in units of c)')
-
-            # Draw axes of moving observer of current frame
-
-            frametime = input.frame()
-            frame_data = lambda: data.iloc[(data['m_proper_time'] - frametime).abs().argsort()[:1]].squeeze()
-            ax.axline((frame_data()['m_position'], frame_data()['m_time']), slope=frame_data()['m_velocity'], color=red)
-            ax.axline((frame_data()['m_position'], frame_data()['m_time']), slope=np.tan(np.pi/2 - np.atan(frame_data()['m_velocity'])), color=red)
-
-            # Draw axes
-            ax.axhline(frametime, color=blue)
-            ax.axvline(0, color=blue)
-            ax.axvline(input.turning_point(), color='grey', linestyle='--', zorder=-1)
-
-            ax.set_xlabel("x in light-seconds")
-            ax.set_ylabel("ct in light-seconds")
-
-            # Pad the limits a bit
-            ylim = ax.get_ylim()
-            ax.set_xlim(ylim[0] - 2, ylim[1] + 2)
-            ax.set_ylim(ylim[0] - 2, ylim[1] + 2)
-            ax.set_aspect('equal')
-
-            times = ax.get_yticks()
-            for prefix, color in [('s', blue), ('m', red)]:
-                # Interpolate positions of moving observer at these times to plot self times
-                times_at_this_proper_time = np.interp(times, data[prefix + '_proper_time'], data[prefix + '_time'], left=np.nan, right=np.nan)
-                positions_at_times = np.interp(times_at_this_proper_time, data[prefix + '_time'], data[prefix + '_position'], left=np.nan, right=np.nan)
-                for t, x, tau in zip(times_at_this_proper_time, positions_at_times, times):
-                    if prefix is 's':
-                        ax.text(x, t, f'τ={tau:.0f}s    ', color=color, verticalalignment='center', horizontalalignment='right',)
-                    else:
-                        ax.text(x, t, f'    τ={tau:.0f}s', color=color, verticalalignment='center', horizontalalignment='left')
-                    ax.scatter(x, t, color=color, marker='x')
-
+            # # Add self time ticks according to x lims of sender and receiver plots
+            # sender_xticks = ax['sender'].get_xticks()
+            # for time in sender_xticks:
+            #     sign = np.sign(time) * np.sign(v)
+            #     ct_axis_transformed, x_axis_transformed = lorentz_transform(time, 0, v)
+            #     if sign < 0:
+            #         ax['minkowski'].text(x_axis_transformed, ct_axis_transformed, f'τ={time:.0f}s    ', color=red, verticalalignment='center',
+            #             horizontalalignment='right', )
+            #     else:
+            #         ax['minkowski'].text(x_axis_transformed, ct_axis_transformed, f'    τ={time:.0f}s', color=red, verticalalignment='center',
+            #             horizontalalignment='left')
+            #
+            # receiver_xticks = ax['receiver'].get_xticks()
+            # for time in receiver_xticks:
+            #     sign = np.sign(time) * np.sign(v)
+            #     if sign > 0:
+            #         ax['minkowski'].text(0, time, f'τ={time:.0f}s    ', color=blue, verticalalignment='center',
+            #                              horizontalalignment='right', )
+            #     else:
+            #         ax['minkowski'].text(0, time, f'    τ={time:.0f}s', color=blue, verticalalignment='center',
+            #                              horizontalalignment='left')
         return fig
 
-def hypTStep(dt, v0, x0, tau0, g):
-    ## Hyperbolic step.
-    ## If an object has proper acceleration g and starts at position x0 with speed v0 and proper time tau0
-    ## as seen from an inertial frame, then return the new v, x, tau after time dt has elapsed.
-    if g == 0:
-        return v0, x0 + v0 * dt, tau0 + dt * (1. - v0 ** 2) ** 0.5
-
-    tinit = v0 / (g * (1 - v0 ** 2) ** 0.5)
-    B = (1 + (g ** 2 * (dt + tinit) ** 2)) ** 0.5
-
-    v1 = g * (dt + tinit) / B
-    x1 = x0 + (1.0 / g) * (B - 1. / (1. - v0 ** 2) ** 0.5)
-    tau1 = tau0 + (np.arcsinh(g * (dt + tinit)) - np.arcsinh(g * tinit)) / g
-    return v1, x1, tau1
-
-def tauStep(dtau, v0, x0, t0, g):
-    ## linear step in proper time of clock.
-    ## If an object has proper acceleration g and starts at position x0 with speed v0 at time t0
-    ## as seen from an inertial frame, then return the new v, x, t after proper time dtau has elapsed.
-
-    ## Compute how much t will change given a proper-time step of dtau
-    gamma = (1. - v0 ** 2) ** -0.5
-    if g == 0:
-        dt = dtau * gamma
-    else:
-        v0g = v0 * gamma
-        dt = (np.sinh(dtau * g + np.arcsinh(v0g)) - v0g) / g
-
-    # return v0 + dtau * g, x0 + v0*dt, t0 + dt
-    v1, x1, t1 = hypTStep(dt, v0, x0, t0, g)
-    return v1, x1, t0 + dt
-
-def lorentz_transform(x, t, v):
-    c = 1 # velocity of light v will be in units of c
-    gamma = 1 / (1 - (v**2 / c**2))**0.5
-    x_prime = gamma * (x + v * t)
-    t_prime = gamma * (t + (v * x) / c**2)
-    return x_prime, t_prime
 
 app = App(app_ui, server, debug=True)
