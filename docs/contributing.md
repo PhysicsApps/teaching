@@ -109,7 +109,7 @@ If you have multiple apps in a single tool, as is the case in the example above,
 To test your tool locally, you should build the full documentation using the following command in the root directory of your repository:
 ```bash
 mkdocs build --clean
-python -m http.server --directory ./site --bind localhost 8008 
+python -m http.server --directory ./site --bind localhost 8008
 ```
 This will create a `site` directory containing the static HTML files for the documentation, including your new tool.
 You can then open your browser and navigate to [localhost http://[::1]:8008/](http://[::1]:8008/) to see the documentation and test if everything works.
