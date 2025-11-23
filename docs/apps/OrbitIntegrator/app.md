@@ -10,7 +10,6 @@ hide:
   - toc
 ---
 
-# Lagrangian Points
+# Oribit Integrator
 <!-- more -->
 {{embed_app("100%", "830px")}}
-Underlying potential taken from: [https://doi.org/10.1086/381315](https://doi.org/10.1086/381315)

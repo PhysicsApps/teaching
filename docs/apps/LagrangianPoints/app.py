@@ -1,7 +1,6 @@
 import numpy as np
 import plotly.graph_objects as go
-import re
-from shiny import App, Inputs, Outputs, Session, render, ui, reactive
+from shiny import App, Inputs, Outputs, Session, render, ui
 
 app_ui = ui.page_sidebar(
     ui.sidebar(
