@@ -18,4 +18,4 @@ hide:
 {{embed_app("100%", "830px", "gradient")}}
 
 ## Curl
-{{embed_app("100%", "830px", "Curl")}}
+{{embed_app("100%", "830px", "curl")}}

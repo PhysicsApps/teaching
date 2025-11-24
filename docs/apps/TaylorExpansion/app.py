@@ -55,7 +55,6 @@ app_ui = ui.page_sidebar(
 
 def server(input: Inputs, output: Outputs, session: Session):
     @reactive.calc
-    @reactive.calc
     def clean_function():
         """Clean and validate the input function"""
         func_str = input.function().strip()
