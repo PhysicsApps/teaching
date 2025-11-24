@@ -141,6 +141,10 @@ def server(input, output, session):
             #     else:
             #         ax['minkowski'].text(0, time, f'    τ={time:.0f}s', color=blue, verticalalignment='center',
             #                              horizontalalignment='left')
+
+            xlims = ax['minkowski'].get_xlim()
+            new_lim = max(5, xlims[1])
+            ax['minkowski'].set_xlim(-new_lim, new_lim)
         return fig
 
 
