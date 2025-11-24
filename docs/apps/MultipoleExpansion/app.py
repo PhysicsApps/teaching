@@ -20,7 +20,7 @@ app_ui = ui.page_sidebar(
         ui.input_select(
           'charge_scenario',
             "Select charge distribution",
-            {"monopole": "Monopole", "dipole": "Dipole", "quadrupole": "Quadrupole"},
+            {"monopole": "Monopole", "dipole": "Dipole", "quadrupole": "Quadrupole", "quadru_trap1": "Quadrupol trap 1", "quadru_trap2": "Quadrupol trap 2"},
         ),
         # ui.output_text("value"),
 
@@ -105,9 +105,60 @@ def server(input, output, session):
         return quadrupole_xy
 
     def set_rho():
+        rho_new = np.zeros_like(X1)
+
+        if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+            rho_new = set_rho_pointlike()
+
+        if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
+            rho_new = set_rho_quadru_trap()
+
+        return rho_new
+
+    # app.handles.temp(4) = plot_torus(app, app.axes_density3D, 1, 0.025, 'r');
+    # set_moments(app, 0, [0;0;0], 3*[1,0,0;0,1,0;0,0,-2]);
+
+    def plot_sphere(axs, r_s, s, color):
+        u, v = np.mgrid[0:2*np.pi:50j, 0:np.pi:50j]
+        x = s*np.cos(u)*np.sin(v) + r_s[0]
+        y = s*np.sin(u)*np.sin(v) + r_s[1]
+        z = s*np.cos(v) + r_s[2]
+
+        axs.plot_surface(x, y, z)
+
+    def plot_torus(axs, r_t, r_s, color):
+        u, v = np.mgrid[0:2*np.pi:50j, 0:2*np.pi:50j]
+        x = (r_t + r_s * np.cos(u)) * np.cos(v)
+        y = (r_t + r_s * np.cos(u)) * np.sin(v)
+        z = r_s * np.sin(u)
+
+        axs.plot_surface(x, y, z)
+
+
+    def set_rho_quadru_trap():
+        rho_new = np.zeros_like(X1)
+        return rho_new
+
+    def plot_rho_quadru_trap():
+
+        fig = plt.figure()
+        axs = fig.add_subplot(projection='3d')
+        #fig, axs = plt.subplots()
+        axs.set_xlim(-1.5, 1.5)
+        axs.set_ylim(-1.5, 1.5)
+        axs.set_zlim(-1.5, 1.5)
+
+        #plot_sphere(axs, [0, 0, 0], 1, [0.75, 0.75, 0.75])
+        plot_sphere(axs, [0, 0, 1], 0.1, 'b')
+        plot_sphere(axs, [0, 0, -1], 0.1, 'b')
+        plot_torus(axs, 1, 0.025, 'r')
+
+        axs.set_title("Charge density")
+        return fig
+
+    def set_rho_pointlike():
         pointlike_r = []
         charge = []
-
 
         rho_new = np.zeros_like(X1)
 
@@ -116,45 +167,57 @@ def server(input, output, session):
             charge = [1]
         if input.charge_scenario() == "dipole":
             pointlike_r = np.array([[-1, 0, 0], [1, 0, 0]])
-            charge = [1,-1]
+            charge = [1, -1]
         if input.charge_scenario() == "quadrupole":
             pointlike_r = np.array([[0, 1, 0], [0, -1, 0], [-1, 0, 0], [1, 0, 0]])
-            charge = [1,1,-1,-1]
+            charge = [1, 1, -1, -1]
 
         number_of_charges = np.shape(pointlike_r)[0]
 
         for i in np.arange(number_of_charges):
-            rho_new = rho_new + charge[i] / (2 * np.pi * sigma ** 2) * np.exp(-0.5 * ((X1 - pointlike_r[i, 0]) ** 2 + (X2 - pointlike_r[i, 1]) ** 2) / (sigma ** 2))
+            rho_new = rho_new + charge[i] / (2 * np.pi * sigma ** 2) * np.exp(
+                -0.5 * ((X1 - pointlike_r[i, 0]) ** 2 + (X2 - pointlike_r[i, 1]) ** 2) / (sigma ** 2))
 
         return rho_new
 
+    def plot_rho_pointlike():
+        if input.dark_mode() == "dark":
+            cmap = berlin
+        else:
+            cmap = 'RdBu_r'
+
+        fig, axs = plt.subplots()
+        axs.set_xlim(-1.5, 1.5)
+        axs.set_ylim(-1.5, 1.5)
+
+        rho_in = set_rho_pointlike()
+
+        axs.imshow(rho_in,
+                   extent=(-10, 10, -10, 10),
+                   origin='lower',
+                   cmap=cmap,
+                   clim=(-1, 1),
+                   )
+
+        axs.set_title("Charge density")
+
+        return fig
 
     @render.plot()
     def charge_density_plot():
         if input.dark_mode() == "dark":
             style_label = 'dark_background'
-            cmap = berlin
         else:
             style_label = 'seaborn-v0_8'
-            cmap = 'RdBu_r'
-
 
         with plt.style.context(style_label):
+            if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+                fig = plot_rho_pointlike()
 
-            fig, axs = plt.subplots()
-            axs.set_xlim(-1.5, 1.5)
-            axs.set_ylim(-1.5, 1.5)
+            if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
+                fig = plot_rho_quadru_trap()
 
-            rho_in = set_rho()
 
-            axs.imshow(rho_in,
-                       extent=(-10, 10, -10, 10),
-                       origin='lower',
-                       cmap=cmap,
-                       clim=(-1, 1),
-                       )
-
-            axs.set_title("Charge density")
 
         return fig
 
