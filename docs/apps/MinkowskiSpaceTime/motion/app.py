@@ -28,6 +28,7 @@ app_ui = ui.page_sidebar(
         ui.input_slider("frame", "Self time", min=0, max=1, value=0, step=0.5, animate=True),
         ui.input_slider("turning_point", "Turning point (in light-seconds)", min=1, max=20, value=10, step=0.1),
         ui.input_slider("acceleration", "Proper acceleration (in c/s)", min=0.01, max=0.25, value=0.15, step=0.001),
+        ui.input_checkbox('show_light_cones', 'Show light cones', value=True),
         ui.input_dark_mode(id='dark_mode'),
         ui.accordion(
             ui.accordion_panel('Advanced settings',
@@ -195,6 +196,13 @@ def server(input, output, session):
                 ax.scatter([frame_data()['m_position'] - shift_pos], [frame_data()['m_time'] - shift_time], color='grey', marker='o', zorder=5)
                 ax.scatter([frametime - shift_time], [0 - shift_pos], color='grey', marker='o', zorder=5)
 
+                if input.show_light_cones():
+                    ax.axline([frame_data()['m_position'] - shift_pos, frame_data()['m_time'] - shift_time], color=red, slope=1, linestyle='--', alpha=0.5)
+                    ax.axline([frame_data()['m_position'] - shift_pos, frame_data()['m_time'] - shift_time], color=red, slope=-1, linestyle='--', alpha=0.5)
+
+                    ax.axline([frametime - shift_time, 0 - shift_pos], color=blue, slope=1, linestyle='--', alpha=0.5)
+                    ax.axline([frametime - shift_time, 0 - shift_pos], color=blue, slope=-1, linestyle='--', alpha=0.5)
+
                 # # Draw axes
                 # ax.axline((frame_data()['m_position'] - shift_pos, frame_data()['m_time'] - shift_time), slope=frame_data()['m_velocity'], color=red)
                 # ax.axline((frame_data()['m_position'] - shift_pos, frame_data()['m_time'] - shift_time), slope=np.tan(np.pi/2 - np.atan(frame_data()['m_velocity'])), color=red)
@@ -229,9 +237,18 @@ def server(input, output, session):
                 ax.plot(s_x_prime, s_t_prime, color=blue)
 
                 ax.scatter([0], [0], color='grey', marker='o', zorder=5)
+                stationary_time = np.interp(frametime, data['m_proper_time'], s_t_prime, left=np.nan, right=np.nan)
+                stationary_pos = np.interp(stationary_time, s_t_prime, s_x_prime, left=np.nan, right=np.nan)
 
-                tmp = np.interp(frametime, data['m_proper_time'], s_t_prime, left=np.nan, right=np.nan)
-                ax.scatter([np.interp(tmp, s_t_prime, s_x_prime, left=np.nan, right=np.nan)], [tmp], color='grey', marker='o', zorder=5)
+                ax.scatter([stationary_pos], [stationary_time], color='grey', marker='o', zorder=5)
+
+                if input.show_light_cones():
+                    ax.axline([0, 0], color=red, slope=1, linestyle='--', alpha=0.5)
+                    ax.axline([0, 0], color=red, slope=-1, linestyle='--', alpha=0.5)
+
+                    ax.axline([stationary_pos, stationary_time], color=blue, slope=1, linestyle='--', alpha=0.5)
+                    ax.axline([stationary_pos, stationary_time], color=blue, slope=-1, linestyle='--', alpha=0.5)
+
                 # # Draw axes
                 # ax.axhline(0, color=red)
                 # ax.axvline(0, color=red)
