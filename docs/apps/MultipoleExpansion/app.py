@@ -134,8 +134,11 @@ def server(input, output, session):
         if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
             moment_q, moment_p, moment_qij = calculate_moments_pointlike()
 
-        if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
+        if input.charge_scenario() == "quadru_trap1":
             moment_qij = np.array([[3, 0, 0], [0, 3, 0], [0, 0, -6]])
+
+        if input.charge_scenario() == "quadru_trap2":
+            moment_qij = np.array([[-3, 0, 0], [0, -3, 0], [0, 0, 6]])
 
         quadrupole_xy = 0.5 * (moment_qij[0,0] * X1 * X1 + moment_qij[1,1] * X2 * X2 + moment_qij[1,0] * X1 * X2 + moment_qij[0,1] * X2 * X1) / (r**5+eps)
         quadrupole_xz = 0.5 * (moment_qij[0,0] * X1 * X1 + moment_qij[2,2] * X2 * X2 + moment_qij[2,0] * X1 * X2 + moment_qij[0,2] * X2 * X1) / (r**5+eps)
