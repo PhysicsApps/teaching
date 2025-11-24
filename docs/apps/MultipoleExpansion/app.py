@@ -22,6 +22,12 @@ app_ui = ui.page_sidebar(
             "Select charge distribution",
             {"monopole": "Monopole", "dipole": "Dipole", "quadrupole": "Quadrupole", "quadru_trap1": "Quadrupol trap 1", "quadru_trap2": "Quadrupol trap 2"},
         ),
+
+        ui.input_select(
+          'plane_phi',
+            "Show potential in ... plane",
+            {"xy": "XY", "xz": "XZ", "yz": "YZ"},
+        ),
         # ui.output_text("value"),
 
         ui.input_dark_mode(id='dark_mode'),
@@ -76,55 +82,65 @@ def server(input, output, session):
 
     @render.text
     def value():
-        return f"{input.charge_scenario()}"
+        return f"{input.plane_phi()}"
 
-    def calculate_monopole():
+
+    def calculate_moments_pointlike():
         rho_new = set_rho_pointlike()
         moment_q = np.trapezoid(x1_axis, np.trapezoid(x2_axis, rho_new))
-        monopole = moment_q/(r+eps)
-        return monopole
 
-    def calculate_dipole():
-        rho_new = set_rho_pointlike()
         moment_px = np.trapezoid(x2_axis, np.trapezoid(x1_axis, X1 * rho_new))
         moment_py = np.trapezoid(x2_axis, np.trapezoid(x1_axis, X2 * rho_new))
-        dipole = (moment_px * x1_axis + moment_py * x2_axis)/(r**3+eps)
-        return dipole
+        moment_p = np.array([moment_px, moment_py, 0])
 
-    def calculate_quadrupole():
-        rho_new = set_rho_pointlike()
         moment_qxx = np.trapezoid(x2_axis, np.trapezoid(x1_axis, rho_new * (3 * X1 * X1 - r ** 2)))
         moment_qyy = np.trapezoid(x2_axis, np.trapezoid(x1_axis, rho_new * (3 * X2 * X2 - r ** 2)))
         moment_qzz = np.trapezoid(x2_axis, np.trapezoid(x1_axis, rho_new * (-r ** 2)))
         moment_qxy = np.trapezoid(x2_axis, np.trapezoid(x1_axis, rho_new * (3 * X1 * X2)))
         moment_qyx = np.trapezoid(x2_axis, np.trapezoid(x1_axis, rho_new * (3 * X2 * X1)))
 
-        qij = np.array([[moment_qxx, moment_qxy, 0], [moment_qyx, moment_qyy, 0], [0, 0, moment_qzz]])
-        quadrupole_xy = 0.5 * (qij[0,0] * X1 *X1 + qij[1,1] * X2 * X2 + qij[1,0] * X1 * X2 + qij[0,1] * X2 * X1) / (r**5+eps)
+        moment_qij = np.array([[moment_qxx, moment_qxy, 0], [moment_qyx, moment_qyy, 0], [0, 0, moment_qzz]])
 
-        return quadrupole_xy
+        return moment_q, moment_p, moment_qij
 
-    def calculate_monopole_trap():
+    def calculate_monopole():
         moment_q = 0
-        monopole = moment_q / (r+eps)
+
+        if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+            moment_q, moment_p, moment_qij = calculate_moments_pointlike()
+
+        if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
+            moment_q = 0
+
+        monopole = moment_q/(r+eps)
         return monopole
 
-    def calculate_dipole_trap():
-        moment_px = 0
-        moment_py = 0
-        dipole = (moment_px * x1_axis + moment_py * x2_axis) / (r**3 + eps)
-        return dipole
+    def calculate_dipole():
+        moment_p = np.array([0, 0, 0])
 
-    def calculate_quadrupole_trap():
-        moment_qxx = 3
-        moment_qyy = 3
-        moment_qzz = -6
-        moment_qxy = 0
-        moment_qyx = 0
+        if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+            moment_q, moment_p, moment_qij = calculate_moments_pointlike()
 
-        qij = np.array([[moment_qxx, moment_qxy, 0], [moment_qyx, moment_qyy, 0], [0, 0, moment_qzz]])
-        quadrupole_xy = 0.5 * (qij[0, 0] * X1 * X1 + qij[1, 1] * X2 * X2 + qij[1, 0] * X1 * X2 + qij[0, 1] * X2 * X1) / (r ** 5 + eps)
-        return quadrupole_xy
+        if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
+            moment_p = np.array([0, 0, 0])
+
+        dipole_xy = (moment_p[0] * x1_axis + moment_p[1] * x2_axis)/(r**3+eps)
+        dipole_xz = (moment_p[0] * x1_axis + moment_p[2] * x2_axis) / (r ** 3 + eps)
+        dipole_yz = (moment_p[1] * x1_axis + moment_p[2] * x2_axis) / (r ** 3 + eps)
+        return dipole_xy, dipole_xz, dipole_yz
+
+    def calculate_quadrupole():
+        moment_qij = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
+        if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+            moment_q, moment_p, moment_qij = calculate_moments_pointlike()
+
+        if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
+            moment_qij = np.array([[3, 0, 0], [0, 3, 0], [0, 0, -6]])
+
+        quadrupole_xy = 0.5 * (moment_qij[0,0] * X1 * X1 + moment_qij[1,1] * X2 * X2 + moment_qij[1,0] * X1 * X2 + moment_qij[0,1] * X2 * X1) / (r**5+eps)
+        quadrupole_xz = 0.5 * (moment_qij[0,0] * X1 * X1 + moment_qij[2,2] * X2 * X2 + moment_qij[2,0] * X1 * X2 + moment_qij[0,2] * X2 * X1) / (r**5+eps)
+        quadrupole_yz = 0.5 * (moment_qij[1,1] * X1 * X1 + moment_qij[2,2] * X2 * X2 + moment_qij[2,1] * X1 * X2 + moment_qij[1,2] * X2 * X1) / (r**5+eps)
+        return quadrupole_xy, quadrupole_xz, quadrupole_yz
 
     def plot_sphere(axs, r_s, s, color):
         u, v = np.mgrid[0:2*np.pi:50j, 0:np.pi:50j]
@@ -234,14 +250,16 @@ def server(input, output, session):
             cmap = 'RdBu_r'
 
         with plt.style.context(style_label):
+            x_label = "X"
+            y_label = "Y"
 
-            phi_mono = np.zeros_like(X1)
+            if input.plane_phi() == "xz":
+                y_label = "Z"
+            if input.plane_phi() == "yz":
+                x_label = "Y"
+                y_label = "Z"
 
-            if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
-                phi_mono = calculate_monopole()
-
-            if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
-                phi_mono = calculate_monopole_trap()
+            phi_mono = calculate_monopole()
 
             fig, ax = plt.subplots()
             ax.imshow(phi_mono,
@@ -250,8 +268,8 @@ def server(input, output, session):
                       origin='lower',
                       cmap=cmap,)
             ax.set_title("Monopole potential")
-            ax.set_xlabel("X")
-            ax.set_ylabel("Y")
+            ax.set_xlabel(x_label)
+            ax.set_ylabel(y_label)
 
         return fig
 
@@ -265,12 +283,18 @@ def server(input, output, session):
             cmap = 'RdBu_r'
 
         with plt.style.context(style_label):
-            phi_di = np.zeros_like(X1)
-            if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
-                phi_di = calculate_dipole()
+            phi_di_xy, phi_di_xz, phi_di_yz = calculate_dipole()
+            phi_di = phi_di_xy
+            x_label = "X"
+            y_label = "Y"
 
-            if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
-                phi_di = calculate_dipole_trap()
+            if input.plane_phi() == "xz":
+                phi_di = phi_di_xz
+                y_label = "Z"
+            if input.plane_phi() == "yz":
+                phi_di = phi_di_yz
+                x_label = "Y"
+                y_label = "Z"
 
             fig, ax = plt.subplots()
             ax.imshow(phi_di,
@@ -279,8 +303,8 @@ def server(input, output, session):
                       origin='lower',
                       cmap=cmap, )
             ax.set_title("Dipole potential")
-            ax.set_xlabel("X")
-            ax.set_ylabel("Y")
+            ax.set_xlabel(x_label)
+            ax.set_ylabel(y_label)
 
         return fig
 
@@ -295,14 +319,18 @@ def server(input, output, session):
 
 
         with plt.style.context(style_label):
+            phi_quad_xy, phi_quad_xz, phi_quad_yz = calculate_quadrupole()
+            phi_quad = phi_quad_xy
+            x_label = "X"
+            y_label = "Y"
 
-            phi_quad = np.zeros_like(X1)
-
-            if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
-                phi_quad = calculate_quadrupole()
-
-            if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
-                phi_quad = calculate_quadrupole_trap()
+            if input.plane_phi() == "xz":
+                phi_quad = phi_quad_xz
+                y_label = "Z"
+            if input.plane_phi() == "yz":
+                phi_quad = phi_quad_yz
+                x_label = "Y"
+                y_label = "Z"
 
             fig, ax = plt.subplots()
             ax.imshow(phi_quad,
@@ -311,8 +339,8 @@ def server(input, output, session):
                       origin='lower',
                       cmap=cmap, )
             ax.set_title("Quadrupole potential")
-            ax.set_xlabel("X")
-            ax.set_ylabel("Y")
+            ax.set_xlabel(x_label)
+            ax.set_ylabel(y_label)
 
         return fig
 
@@ -326,19 +354,24 @@ def server(input, output, session):
             cmap = 'RdBu_r'
 
         with plt.style.context(style_label):
-            phi_mono = np.zeros_like(X1)
-            phi_di = np.zeros_like(X1)
-            phi_quad = np.zeros_like(X1)
+            phi_mono = calculate_monopole()
+            phi_di_xy, phi_di_xz, phi_di_yz = calculate_dipole()
+            phi_di = phi_di_xy
 
-            if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
-                phi_mono = calculate_monopole()
-                phi_di = calculate_dipole()
-                phi_quad = calculate_quadrupole()
+            phi_quad_xy, phi_quad_xz, phi_quad_yz = calculate_quadrupole()
+            phi_quad = phi_quad_xy
+            x_label = "X"
+            y_label = "Y"
 
-            if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
-                phi_mono = calculate_monopole_trap()
-                phi_di = calculate_dipole_trap()
-                phi_quad = calculate_quadrupole_trap()
+            if input.plane_phi() == "xz":
+                phi_di = phi_di_xz
+                phi_quad = phi_quad_xz
+                y_label = "Z"
+            if input.plane_phi() == "yz":
+                phi_di = phi_di_yz
+                phi_quad = phi_quad_yz
+                x_label = "Y"
+                y_label = "Z"
 
             fig, ax = plt.subplots()
             ax.imshow(phi_mono + phi_di + phi_quad,
@@ -347,8 +380,8 @@ def server(input, output, session):
                       origin='lower',
                       cmap=cmap, )
             ax.set_title("Total potential")
-            ax.set_xlabel("X")
-            ax.set_ylabel("Y")
+            ax.set_xlabel(x_label)
+            ax.set_ylabel(y_label)
 
         return fig
 
