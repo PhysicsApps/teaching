@@ -72,12 +72,10 @@ hide:
 Quick example for a simple matplotlib app. Matplotlib is a popular Python library that can be used to create plots.
 <!-- more -->
 This is a simple example to showcase different matplotlib apps using Shiny for Python.
-## Default matplotlib theme
-{{embed_app("100%", "500px", "default")}}
-## Dark matplotlib theme
-{{embed_app("100%", "500px", "dark")}}
-## Seaborn matplotlib theme
-{{embed_app("100%", "500px", "seaborn")}}
+## Simplest matplotlib plot
+{{embed_app("100%", "500px", "automatic")}}
+## Animations using matplotlib
+{{embed_app("100%", "500px", "animated")}}
 ```
 This documentation differs slightly from standard markdown files, as it includes a few additional necessary sections.
 The front matter at the top of the file is used to specify metadata about the tool, such as the authors, categories, tags, and date.
@@ -108,8 +106,7 @@ If you have multiple apps in a single tool, as is the case in the example above,
 ## Testing your tool locally
 To test your tool locally, you should build the full documentation using the following command in the root directory of your repository:
 ```bash
-mkdocs build --clean
-python -m http.server --directory ./site --bind localhost 8008
+mkdocs build --clean & python -m http.server --directory ./site --bind localhost 8008
 ```
 This will create a `site` directory containing the static HTML files for the documentation, including your new tool.
 You can then open your browser and navigate to [localhost http://[::1]:8008/](http://[::1]:8008/) to see the documentation and test if everything works.
