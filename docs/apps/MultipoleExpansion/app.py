@@ -163,7 +163,7 @@ def server(input, output, session):
         quadrupole_yz = 0.5 * (moment_qij[1,1] * X1 * X1 + moment_qij[2,2] * X2 * X2 + moment_qij[2,1] * X1 * X2 + moment_qij[1,2] * X2 * X1) / (r**5+eps)
         return quadrupole_xy, quadrupole_xz, quadrupole_yz
 
-    def create_sphere(center, radius, color):
+    def create_sphere(center, radius, color, opacity=0.8):
         u = np.linspace(0, 2 * np.pi, 25)
         v = np.linspace(0, np.pi, 25)
         x = radius * np.outer(np.cos(u), np.sin(v)) + center[0]
@@ -173,7 +173,7 @@ def server(input, output, session):
         return go.Surface(x=x, y=y, z=z,
                           colorscale=[[0, color], [1, color]],
                           showscale=False,
-                          opacity=0.8)
+                          opacity=opacity)
 
     def create_torus(major_radius, minor_radius, color):
         u = np.linspace(0, 2 * np.pi, 50)
@@ -194,10 +194,12 @@ def server(input, output, session):
             colors = pc.sample_colorscale(berlin_plotly, [0, 1])
             blue = colors[0]
             red = colors[1]
+            sphere_color = 'black'
         else:
             colors = pc.sample_colorscale('RdBu_r', [0, 1])
             blue = colors[0]
             red = colors[1]
+            sphere_color = 'white'
 
         color_1 = blue
         color_2 = red
@@ -206,16 +208,20 @@ def server(input, output, session):
             color_1 = red
             color_2 = blue
 
+        sphere0 = create_sphere([0,0,0], 1, sphere_color, opacity=0.35)
         sphere1 = create_sphere([0, 0, 1], 0.1, color_1)
         sphere2 = create_sphere([0, 0, -1], 0.1, color_1)
         torus = create_torus(1, 0.025, color_2)
 
-        fig = go.Figure(data=[sphere1, sphere2, torus])
+        fig = go.Figure(data=[sphere0, sphere1, sphere2, torus])
 
         fig.update_layout(
             scene=dict(
-                zaxis=dict(range=[-1.5, 1.5], title='Z'),
-                aspectmode='cube',  # This maintains equal scaling on all axes
+                xaxis=dict(range=[-1.2, 1.2], title='X'),
+                yaxis=dict(range=[-1.2, 1.2], title='Y'),
+                zaxis=dict(range=[-1.2, 1.2], title='Z'),
+                aspectmode='cube',
+                #camera=dict(eye=dict(x=2.3, y=2.3, z=2.3)),
             ),
             width=250, height=250,
             #margin=dict(l=60, r=10, b=60, t=10),
@@ -249,10 +255,8 @@ def server(input, output, session):
 
     def plot_rho_pointlike():
         if input.dark_mode() == "dark":
-            template = "plotly_dark"
             cmap = berlin_plotly
         else:
-            template = "plotly_white"
             cmap = 'RdBu_r'
 
         rho_in = set_rho_pointlike()
@@ -270,6 +274,8 @@ def server(input, output, session):
         fig.update_layout(
             width=250,
             height=250,
+            xaxis=dict(range=[-1.5, 1.5]),
+            yaxis=dict(range=[-1.5, 1.5]),
         )
 
         return fig
@@ -291,8 +297,6 @@ def server(input, output, session):
             template=template,
             title="Charge density",
             title_x=0.5,
-            xaxis=dict(range=[-1.5, 1.5]),
-            yaxis=dict(range=[-1.5, 1.5]),
             xaxis_title="X",
             yaxis_title="Y"
         )
