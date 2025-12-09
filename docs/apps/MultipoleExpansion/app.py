@@ -52,21 +52,21 @@ app_ui = ui.page_sidebar(
         width = "25%"
     ),
     ui.layout_column_wrap(
-        ui.output_plot(
+        output_widget(
             "monopole_plot",
             width="300px", height="300px"
         ),
-        ui.output_plot(
+        output_widget(
             "dipole_plot",
             width="300px", height="300px"
         ),
     ),
     ui.layout_column_wrap(
-        ui.output_plot(
+        output_widget(
             "quadrupole_plot",
             width="300px", height="300px"
         ),
-        ui.output_plot(
+        output_widget(
             "sum_plot",
             width="300px", height="300px"
         ),
@@ -303,148 +303,187 @@ def server(input, output, session):
 
         return fig
 
-    @render.plot()
+    @render_plotly
     def monopole_plot():
         if input.dark_mode() == "dark":
-            style_label = 'dark_background'
-            cmap = berlin
+            template = "plotly_dark"
+            cmap = berlin_plotly
         else:
-            style_label = 'seaborn-v0_8'
+            template = "plotly_white"
             cmap = 'RdBu_r'
 
-        with plt.style.context(style_label):
-            x_label = "X"
-            y_label = "Y"
+        x_label = "X"
+        y_label = "Y"
 
-            if input.plane_phi() == "xz":
-                y_label = "Z"
-            if input.plane_phi() == "yz":
-                x_label = "Y"
-                y_label = "Z"
+        if input.plane_phi() == "xz":
+            y_label = "Z"
+        if input.plane_phi() == "yz":
+            x_label = "Y"
+            y_label = "Z"
 
-            phi_mono = calculate_monopole()
+        phi_mono = calculate_monopole()
 
-            fig, ax = plt.subplots()
-            ax.imshow(phi_mono,
-                      extent=(-10, 10, -10, 10),
-                      clim=(-1, 1),
-                      origin='lower',
-                      cmap=cmap,)
-            ax.set_title("Monopole potential")
-            ax.set_xlabel(x_label)
-            ax.set_ylabel(y_label)
+        fig = go.Figure(data = go.Heatmap(
+            z=phi_mono,
+            x=x1_axis,
+            y=x2_axis,
+            zmin=-1,
+            zmax=1,
+            showscale=False,
+            colorscale=cmap,
+        ))
+
+        fig.update_layout(
+            template=template,
+            width=300,
+            height=300,
+            title="Monopole potential",
+            title_x=0.5,
+            xaxis_title=x_label,
+            yaxis_title=y_label,
+        )
 
         return fig
 
-    @render.plot()
+    @render_plotly
     def dipole_plot():
         if input.dark_mode() == "dark":
-            style_label = 'dark_background'
-            cmap = berlin
+            template = "plotly_dark"
+            cmap = berlin_plotly
         else:
-            style_label = 'seaborn-v0_8'
+            template = "plotly_white"
             cmap = 'RdBu_r'
 
-        with plt.style.context(style_label):
-            phi_di_xy, phi_di_xz, phi_di_yz = calculate_dipole()
-            phi_di = phi_di_xy
-            x_label = "X"
-            y_label = "Y"
 
-            if input.plane_phi() == "xz":
-                phi_di = phi_di_xz
-                y_label = "Z"
-            if input.plane_phi() == "yz":
-                phi_di = phi_di_yz
-                x_label = "Y"
-                y_label = "Z"
+        phi_di_xy, phi_di_xz, phi_di_yz = calculate_dipole()
+        phi_di = phi_di_xy
+        x_label = "X"
+        y_label = "Y"
 
-            fig, ax = plt.subplots()
-            ax.imshow(phi_di,
-                      extent=(-10, 10, -10, 10),
-                      clim=(-1, 1),
-                      origin='lower',
-                      cmap=cmap, )
-            ax.set_title("Dipole potential")
-            ax.set_xlabel(x_label)
-            ax.set_ylabel(y_label)
+        if input.plane_phi() == "xz":
+            phi_di = phi_di_xz
+            y_label = "Z"
+        if input.plane_phi() == "yz":
+            phi_di = phi_di_yz
+            x_label = "Y"
+            y_label = "Z"
+
+        fig = go.Figure(data=go.Heatmap(
+            z=phi_di,
+            x=x1_axis,
+            y=x2_axis,
+            zmin=-1,
+            zmax=1,
+            showscale=False,
+            colorscale=cmap,
+        ))
+
+        fig.update_layout(
+            template=template,
+            width=300,
+            height=300,
+            title="Dipole potential",
+            title_x=0.5,
+            xaxis_title=x_label,
+            yaxis_title=y_label,
+        )
 
         return fig
 
-    @render.plot()
+    @render_plotly
     def quadrupole_plot():
         if input.dark_mode() == "dark":
-            style_label = 'dark_background'
-            cmap = berlin
+            template = "plotly_dark"
+            cmap = berlin_plotly
         else:
-            style_label = 'seaborn-v0_8'
+            template = "plotly_white"
             cmap = 'RdBu_r'
 
 
-        with plt.style.context(style_label):
-            phi_quad_xy, phi_quad_xz, phi_quad_yz = calculate_quadrupole()
-            phi_quad = phi_quad_xy
-            x_label = "X"
-            y_label = "Y"
 
-            if input.plane_phi() == "xz":
-                phi_quad = phi_quad_xz
-                y_label = "Z"
-            if input.plane_phi() == "yz":
-                phi_quad = phi_quad_yz
-                x_label = "Y"
-                y_label = "Z"
+        phi_quad_xy, phi_quad_xz, phi_quad_yz = calculate_quadrupole()
+        phi_quad = phi_quad_xy
+        x_label = "X"
+        y_label = "Y"
 
-            fig, ax = plt.subplots()
-            ax.imshow(phi_quad,
-                      extent=(-10, 10, -10, 10),
-                      clim=(-1, 1),
-                      origin='lower',
-                      cmap=cmap, )
-            ax.set_title("Quadrupole potential")
-            ax.set_xlabel(x_label)
-            ax.set_ylabel(y_label)
+        if input.plane_phi() == "xz":
+            phi_quad = phi_quad_xz
+            y_label = "Z"
+        if input.plane_phi() == "yz":
+            phi_quad = phi_quad_yz
+            x_label = "Y"
+            y_label = "Z"
+
+        fig = go.Figure(data=go.Heatmap(
+            z=phi_quad,
+            x=x1_axis,
+            y=x2_axis,
+            zmin=-1,
+            zmax=1,
+            showscale=False,
+            colorscale=cmap,
+        ))
+
+        fig.update_layout(
+            template=template,
+            width=300,
+            height=300,
+            title="Quadrupole potential",
+            title_x=0.5,
+            xaxis_title=x_label,
+            yaxis_title=y_label,
+        )
 
         return fig
 
-    @render.plot()
+    @render_plotly
     def sum_plot():
         if input.dark_mode() == "dark":
-            style_label = 'dark_background'
-            cmap = berlin
+            template = "plotly_dark"
+            cmap = berlin_plotly
         else:
-            style_label = 'seaborn-v0_8'
+            template = "plotly_white"
             cmap = 'RdBu_r'
 
-        with plt.style.context(style_label):
-            phi_mono = calculate_monopole()
-            phi_di_xy, phi_di_xz, phi_di_yz = calculate_dipole()
-            phi_di = phi_di_xy
+        phi_mono = calculate_monopole()
+        phi_di_xy, phi_di_xz, phi_di_yz = calculate_dipole()
+        phi_di = phi_di_xy
 
-            phi_quad_xy, phi_quad_xz, phi_quad_yz = calculate_quadrupole()
-            phi_quad = phi_quad_xy
-            x_label = "X"
-            y_label = "Y"
+        phi_quad_xy, phi_quad_xz, phi_quad_yz = calculate_quadrupole()
+        phi_quad = phi_quad_xy
+        x_label = "X"
+        y_label = "Y"
 
-            if input.plane_phi() == "xz":
-                phi_di = phi_di_xz
-                phi_quad = phi_quad_xz
-                y_label = "Z"
-            if input.plane_phi() == "yz":
-                phi_di = phi_di_yz
-                phi_quad = phi_quad_yz
-                x_label = "Y"
-                y_label = "Z"
+        if input.plane_phi() == "xz":
+            phi_di = phi_di_xz
+            phi_quad = phi_quad_xz
+            y_label = "Z"
+        if input.plane_phi() == "yz":
+            phi_di = phi_di_yz
+            phi_quad = phi_quad_yz
+            x_label = "Y"
+            y_label = "Z"
 
-            fig, ax = plt.subplots()
-            ax.imshow(phi_mono + phi_di + phi_quad,
-                      extent=(-10, 10, -10, 10),
-                      clim=(-1, 1),
-                      origin='lower',
-                      cmap=cmap, )
-            ax.set_title("Total potential")
-            ax.set_xlabel(x_label)
-            ax.set_ylabel(y_label)
+        fig = go.Figure(data=go.Heatmap(
+            z=phi_mono + phi_di + phi_quad,
+            x=x1_axis,
+            y=x2_axis,
+            zmin=-1,
+            zmax=1,
+            showscale=False,
+            colorscale=cmap,
+        ))
+
+        fig.update_layout(
+            template=template,
+            width=300,
+            height=300,
+            title="Total potential",
+            title_x=0.5,
+            xaxis_title=x_label,
+            yaxis_title=y_label,
+        )
+
 
         return fig
 
