@@ -28,7 +28,6 @@ app_ui = ui.page_sidebar(
             ui.nav_panel("Examples",
                 output_widget(
                 "charge_density_plot",
-                #click=True,
                 width="250px", height="250px"
                 ),
                 ui.input_radio_buttons(
@@ -41,7 +40,7 @@ app_ui = ui.page_sidebar(
                 ui.output_plot(
                 "charge_density_clickable",
                 click=True,
-                width="250px", height="250px"
+                width="270px", height="270px"
                 ),
                 ui.input_radio_buttons(
                 'charge_sign',
@@ -67,23 +66,23 @@ app_ui = ui.page_sidebar(
         width = "30%"
     ),
     ui.layout_column_wrap(
-        output_widget(
+        ui.output_plot(
             "monopole_plot",
             width="350px", height="350px"
         ),
-        output_widget(
+        ui.output_plot(
             "dipole_plot",
-            width="300px", height="300px"
+            width="350px", height="350px"
         ),
     ),
     ui.layout_column_wrap(
-        output_widget(
+        ui.output_plot(
             "quadrupole_plot",
-            width="300px", height="300px"
+            width="350px", height="350px"
         ),
-        output_widget(
+        ui.output_plot(
             "sum_plot",
-            width="300px", height="300px"
+            width="350px", height="350px"
         ),
     ),
 )
@@ -158,11 +157,15 @@ def server(input, output, session):
     def calculate_monopole():
         moment_q = 0
 
-        if input.selected_scenario() == 'Clickable' or input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
-            moment_q, moment_p, moment_qij = calculate_moments_pointlike()
+        if input.selected_scenario() == 'Examples':
+            if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+                moment_q, moment_p, moment_qij = calculate_moments_pointlike()
 
-        if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
-            moment_q = 0
+            if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
+                moment_q = 0
+
+        if input.selected_scenario() == 'Clickable':
+            moment_q, moment_p, moment_qij = calculate_moments_pointlike()
 
         monopole = moment_q/(r+eps)
         return monopole
@@ -170,11 +173,15 @@ def server(input, output, session):
     def calculate_dipole():
         moment_p = np.array([0, 0, 0])
 
-        if input.selected_scenario() == 'Clickable' or input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
-            moment_q, moment_p, moment_qij = calculate_moments_pointlike()
+        if input.selected_scenario() == 'Examples':
+            if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+                moment_q, moment_p, moment_qij = calculate_moments_pointlike()
 
-        if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
-            moment_p = np.array([0, 0, 0])
+            if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
+                moment_p = np.array([0, 0, 0])
+
+        if input.selected_scenario() == 'Clickable':
+            moment_q, moment_p, moment_qij = calculate_moments_pointlike()
 
         dipole_xy = (moment_p[0] * x1_axis + moment_p[1] * x2_axis) / ((r + eps)**3)
         dipole_xz = (moment_p[0] * x1_axis + moment_p[2] * x2_axis) / ((r + eps)**3)
@@ -183,14 +190,19 @@ def server(input, output, session):
 
     def calculate_quadrupole():
         moment_qij = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
-        if input.selected_scenario() == 'Clickable' or input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+
+        if input.selected_scenario() == 'Examples':
+            if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+                moment_q, moment_p, moment_qij = calculate_moments_pointlike()
+
+            if input.charge_scenario() == "quadru_trap1":
+                moment_qij = np.array([[3, 0, 0], [0, 3, 0], [0, 0, -6]])
+
+            if input.charge_scenario() == "quadru_trap2":
+                moment_qij = np.array([[-3, 0, 0], [0, -3, 0], [0, 0, 6]])
+
+        if input.selected_scenario() == 'Clickable':
             moment_q, moment_p, moment_qij = calculate_moments_pointlike()
-
-        if input.charge_scenario() == "quadru_trap1":
-            moment_qij = np.array([[3, 0, 0], [0, 3, 0], [0, 0, -6]])
-
-        if input.charge_scenario() == "quadru_trap2":
-            moment_qij = np.array([[-3, 0, 0], [0, -3, 0], [0, 0, 6]])
 
         quadrupole_xy = 0.5 * (moment_qij[0,0] * X1 * X1 + moment_qij[1,1] * X2 * X2 + moment_qij[1,0] * X1 * X2 + moment_qij[0,1] * X2 * X1) / ((r + eps)**5)
         quadrupole_xz = 0.5 * (moment_qij[0,0] * X1 * X1 + moment_qij[2,2] * X2 * X2 + moment_qij[2,0] * X1 * X2 + moment_qij[0,2] * X2 * X1) / ((r + eps)**5)
@@ -357,231 +369,113 @@ def server(input, output, session):
             zmax = 1
 
 
-        fig, axs = plt.subplots()
+        fig, ax = plt.subplots()
         fig.patch.set_facecolor(bg_color)
-        axs.set_xlim(-1.5, 1.5)
-        axs.set_ylim(-1.5, 1.5)
-        axs.grid(True, alpha=0.3)
-        axs.tick_params(axis='y', colors=text_color)
-        axs.tick_params(axis='x', colors=text_color)
-        axs.set_xlabel("X", color=text_color)
-        axs.set_ylabel("Y", color=text_color)
+        ax.set_xlim(-1.5, 1.5)
+        ax.set_ylim(-1.5, 1.5)
+        ax.grid(True, alpha=0.3)
+        ax.tick_params(axis='y', colors=text_color)
+        ax.tick_params(axis='x', colors=text_color)
+        ax.set_xlabel("X", color=text_color)
+        ax.set_ylabel("Y", color=text_color)
+        ax.set_xticks([-1, 0, 1])
+        ax.set_yticks([-1, 0, 1])
 
         current_rho = rho_clickable()
 
-        axs.imshow(current_rho,
+        ax.imshow(current_rho,
                    extent=(-10, 10, -10, 10),
                    origin='lower',
                    cmap=cmap,
                    clim=(-1, zmax),
                    )
 
-        axs.set_title("Charge density", color=text_color)
-
+        ax.set_title("Charge density", color=text_color)
 
         return fig
 
-    @render_plotly
+    def prepare_plot(potential_xy, potential_xz, potential_yz):
+        if input.dark_mode() == "dark":
+            text_color = 'white'
+            bg_color = grey_bg_pl
+            cmap = berlin
+            zmax = 1.1
+        else:
+            text_color = 'black'
+            bg_color = 'white'
+            cmap = 'RdBu_r'
+            zmax = 1
+
+        x_label = "X"
+        y_label = "Y"
+
+        potential = potential_xy
+        if input.plane_phi() == "xz":
+            potential = potential_xz
+            y_label = "Z"
+        if input.plane_phi() == "yz":
+            potential = potential_yz
+            x_label = "Y"
+            y_label = "Z"
+
+        fig, ax = plt.subplots()
+        fig.patch.set_facecolor(bg_color)
+        ax.tick_params(axis='y', colors=text_color)
+        ax.tick_params(axis='x', colors=text_color)
+        ax.set_xticks([-10, 0, 10])
+        ax.set_yticks([-10, 0, 10])
+        ax.yaxis.label.set_color(text_color)
+        ax.xaxis.label.set_color(text_color)
+
+        ax.spines['bottom'].set_color(text_color)
+        ax.spines['top'].set_color(text_color)
+        ax.spines['right'].set_color(text_color)
+        ax.spines['left'].set_color(text_color)
+
+        ax.imshow(potential,
+                  extent=(-10, 10, -10, 10),
+                  clim=(-1, zmax),
+                  origin='lower',
+                  cmap=cmap, )
+        ax.title.set_color(color=text_color)
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+
+        return fig, ax
+
+    @render.plot
     def monopole_plot():
-        if input.dark_mode() == "dark":
-            template = "plotly_dark"
-            cmap = berlin_plotly
-            zmax = 1.1
-            bg_color = grey_bg
-        else:
-            template = "plotly_white"
-            cmap = 'RdBu_r'
-            zmax = 1
-            bg_color = 'white'
-
-        x_label = "X"
-        y_label = "Y"
-
-        if input.plane_phi() == "xz":
-            y_label = "Z"
-        if input.plane_phi() == "yz":
-            x_label = "Y"
-            y_label = "Z"
-
         phi_mono = calculate_monopole()
-
-        fig = go.Figure(data = go.Heatmap(
-            z=phi_mono,
-            x=x1_axis,
-            y=x2_axis,
-            zmin=-1,
-            zmax=zmax,
-            showscale=False,
-            colorscale=cmap,
-        ))
-
-        fig.update_layout(
-            template=template,
-            paper_bgcolor=bg_color,
-            width=300,
-            height=300,
-            title="Monopole potential",
-            title_x=0.5,
-            xaxis_title=x_label,
-            yaxis_title=y_label,
-        )
-
+        fig, ax = prepare_plot(phi_mono, phi_mono, phi_mono)
+        ax.set_title("Monopole potential")
         return fig
 
-    @render_plotly
+    @render.plot
     def dipole_plot():
-        if input.dark_mode() == "dark":
-            template = "plotly_dark"
-            cmap = berlin_plotly
-            zmax = 1.1
-            bg_color = grey_bg
-        else:
-            template = "plotly_white"
-            cmap = 'RdBu_r'
-            zmax = 1
-            bg_color = 'white'
-
-
         phi_di_xy, phi_di_xz, phi_di_yz = calculate_dipole()
-        phi_di = phi_di_xy
-        x_label = "X"
-        y_label = "Y"
-
-        if input.plane_phi() == "xz":
-            phi_di = phi_di_xz
-            y_label = "Z"
-        if input.plane_phi() == "yz":
-            phi_di = phi_di_yz
-            x_label = "Y"
-            y_label = "Z"
-
-        fig = go.Figure(data=go.Heatmap(
-            z=phi_di,
-            x=x1_axis,
-            y=x2_axis,
-            zmin=-1,
-            zmax=zmax,
-            showscale=False,
-            colorscale=cmap,
-        ))
-
-        fig.update_layout(
-            template=template,
-            paper_bgcolor=bg_color,
-            width=300,
-            height=300,
-            title="Dipole potential",
-            title_x=0.5,
-            xaxis_title=x_label,
-            yaxis_title=y_label,
-        )
-
+        fig, ax = prepare_plot(phi_di_xy, phi_di_xz, phi_di_yz)
+        ax.set_title("Dipole potential")
         return fig
 
-    @render_plotly
+    @render.plot
     def quadrupole_plot():
-        if input.dark_mode() == "dark":
-            template = "plotly_dark"
-            cmap = berlin_plotly
-            zmax = 1.1
-            bg_color = grey_bg
-        else:
-            template = "plotly_white"
-            cmap = 'RdBu_r'
-            zmax = 1
-            bg_color = 'white'
-
-
-
         phi_quad_xy, phi_quad_xz, phi_quad_yz = calculate_quadrupole()
-        phi_quad = phi_quad_xy
-        x_label = "X"
-        y_label = "Y"
-
-        if input.plane_phi() == "xz":
-            phi_quad = phi_quad_xz
-            y_label = "Z"
-        if input.plane_phi() == "yz":
-            phi_quad = phi_quad_yz
-            x_label = "Y"
-            y_label = "Z"
-
-        fig = go.Figure(data=go.Heatmap(
-            z=phi_quad,
-            x=x1_axis,
-            y=x2_axis,
-            zmin=-1,
-            zmax=zmax,
-            showscale=False,
-            colorscale=cmap,
-        ))
-
-        fig.update_layout(
-            template=template,
-            paper_bgcolor=bg_color,
-            width=300,
-            height=300,
-            title="Quadrupole potential",
-            title_x=0.5,
-            xaxis_title=x_label,
-            yaxis_title=y_label,
-        )
-
+        fig, ax = prepare_plot(phi_quad_xy, phi_quad_xz, phi_quad_yz)
+        ax.set_title("Quadrupole potential")
         return fig
 
-    @render_plotly
+    @render.plot
     def sum_plot():
-        if input.dark_mode() == "dark":
-            template = "plotly_dark"
-            cmap = berlin_plotly
-            zmax = 1.1
-            bg_color = grey_bg
-        else:
-            template = "plotly_white"
-            cmap = 'RdBu_r'
-            zmax = 1
-            bg_color = 'white'
 
         phi_mono = calculate_monopole()
         phi_di_xy, phi_di_xz, phi_di_yz = calculate_dipole()
-        phi_di = phi_di_xy
-
         phi_quad_xy, phi_quad_xz, phi_quad_yz = calculate_quadrupole()
-        phi_quad = phi_quad_xy
-        x_label = "X"
-        y_label = "Y"
+        pot_xy = phi_mono + phi_di_xy + phi_quad_xy
+        pot_xz = phi_mono + phi_di_xz + phi_quad_xz
+        pot_yz = phi_mono + phi_di_yz + phi_quad_yz
 
-        if input.plane_phi() == "xz":
-            phi_di = phi_di_xz
-            phi_quad = phi_quad_xz
-            y_label = "Z"
-        if input.plane_phi() == "yz":
-            phi_di = phi_di_yz
-            phi_quad = phi_quad_yz
-            x_label = "Y"
-            y_label = "Z"
-
-        fig = go.Figure(data=go.Heatmap(
-            z=phi_mono + phi_di + phi_quad,
-            x=x1_axis,
-            y=x2_axis,
-            zmin=-1,
-            zmax=zmax,
-            showscale=False,
-            colorscale=cmap,
-        ))
-
-        fig.update_layout(
-            template=template,
-            paper_bgcolor=bg_color,
-            width=300,
-            height=300,
-            title="Total potential",
-            title_x=0.5,
-            xaxis_title=x_label,
-            yaxis_title=y_label,
-        )
-
+        fig, ax = prepare_plot(pot_xy, pot_xz, pot_yz)
+        ax.set_title("Total potential")
 
         return fig
 
