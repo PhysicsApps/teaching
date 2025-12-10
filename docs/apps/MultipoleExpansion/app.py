@@ -1,10 +1,4 @@
-import matplotlib.pyplot as plt
-import matplotlib
-import plotly.express as px
 import numpy as np
-from fontTools.merge import cmap
-from palmerpenguins import load_penguins
-#from pygments.lexers import go
 import plotly.graph_objects as go
 import plotly.colors as pc
 from shinywidgets import render_plotly
@@ -29,18 +23,37 @@ berlin_plotly = rgb_normalized_to_plotly(berlin_cmap)
 
 app_ui = ui.page_sidebar(
     ui.sidebar(
-        output_widget(
-            "charge_density_plot",
-            #click=True,
-            width="250px", height="250px"
+        ui.navset_pill(
+            ui.nav_panel("Examples",
+                output_widget(
+                "charge_density_plot",
+                #click=True,
+                width="250px", height="250px"
+                ),
+                ui.input_radio_buttons(
+                'charge_scenario',
+                    "Select charge distribution",
+                    {"monopole": "Monopole", "dipole": "Dipole", "quadrupole": "Quadrupole", "quadru_trap1": "Quadrupol trap 1", "quadru_trap2": "Quadrupol trap 2"},
+                ),
+             ),
+            ui.nav_panel("Clickable",
+                output_widget(
+                "charge_density_clickable",
+                #click=True,
+                width="250px", height="250px"
+                ),
+                ui.input_radio_buttons(
+                'charge_sign',
+                    "Select charge",
+                    {"charge_pos": "Positive", "charge_neg": "negative"},
+                ),
+                ui.input_action_button(
+                    'delete_all',
+                    "Delete"
+                ),
+             ),
         ),
-        ui.input_select(
-          'charge_scenario',
-            "Select charge distribution",
-            {"monopole": "Monopole", "dipole": "Dipole", "quadrupole": "Quadrupole", "quadru_trap1": "Quadrupol trap 1", "quadru_trap2": "Quadrupol trap 2"},
-        ),
-
-        ui.input_select(
+        ui.input_radio_buttons(
           'plane_phi',
             "Show potential in ... plane",
             {"xy": "XY", "xz": "XZ", "yz": "YZ"},
@@ -49,12 +62,12 @@ app_ui = ui.page_sidebar(
 
         ui.input_dark_mode(id='dark_mode'),
         open='always',
-        width = "25%"
+        width = "30%"
     ),
     ui.layout_column_wrap(
         output_widget(
             "monopole_plot",
-            width="300px", height="300px"
+            width="350px", height="350px"
         ),
         output_widget(
             "dipole_plot",
@@ -77,7 +90,7 @@ def server(input, output, session):
     # some overall definitions and stuff
     click_data = reactive.value(None)
 
-    eps = 1e-15
+    eps = 1e-10
 
     x1_axis = np.linspace(-10, 10, 500)
     x2_axis = np.linspace(-10, 10, 500)
@@ -87,6 +100,8 @@ def server(input, output, session):
 
     r = np.sqrt(X1 ** 2 + X2 ** 2)
     rho = np.zeros_like(X1)
+
+    grey_bg = 'rgb(28, 30, 32)'
 
     # Update click data when plot is clicked
     # @reactive.effect
@@ -142,9 +157,9 @@ def server(input, output, session):
         if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
             moment_p = np.array([0, 0, 0])
 
-        dipole_xy = (moment_p[0] * x1_axis + moment_p[1] * x2_axis)/(r**3+eps)
-        dipole_xz = (moment_p[0] * x1_axis + moment_p[2] * x2_axis) / (r ** 3 + eps)
-        dipole_yz = (moment_p[1] * x1_axis + moment_p[2] * x2_axis) / (r ** 3 + eps)
+        dipole_xy = (moment_p[0] * x1_axis + moment_p[1] * x2_axis) / ((r + eps)**3)
+        dipole_xz = (moment_p[0] * x1_axis + moment_p[2] * x2_axis) / ((r + eps)**3)
+        dipole_yz = (moment_p[1] * x1_axis + moment_p[2] * x2_axis) / ((r + eps)**3)
         return dipole_xy, dipole_xz, dipole_yz
 
     def calculate_quadrupole():
@@ -158,9 +173,9 @@ def server(input, output, session):
         if input.charge_scenario() == "quadru_trap2":
             moment_qij = np.array([[-3, 0, 0], [0, -3, 0], [0, 0, 6]])
 
-        quadrupole_xy = 0.5 * (moment_qij[0,0] * X1 * X1 + moment_qij[1,1] * X2 * X2 + moment_qij[1,0] * X1 * X2 + moment_qij[0,1] * X2 * X1) / (r**5+eps)
-        quadrupole_xz = 0.5 * (moment_qij[0,0] * X1 * X1 + moment_qij[2,2] * X2 * X2 + moment_qij[2,0] * X1 * X2 + moment_qij[0,2] * X2 * X1) / (r**5+eps)
-        quadrupole_yz = 0.5 * (moment_qij[1,1] * X1 * X1 + moment_qij[2,2] * X2 * X2 + moment_qij[2,1] * X1 * X2 + moment_qij[1,2] * X2 * X1) / (r**5+eps)
+        quadrupole_xy = 0.5 * (moment_qij[0,0] * X1 * X1 + moment_qij[1,1] * X2 * X2 + moment_qij[1,0] * X1 * X2 + moment_qij[0,1] * X2 * X1) / ((r + eps)**5)
+        quadrupole_xz = 0.5 * (moment_qij[0,0] * X1 * X1 + moment_qij[2,2] * X2 * X2 + moment_qij[2,0] * X1 * X2 + moment_qij[0,2] * X2 * X1) / ((r + eps)**5)
+        quadrupole_yz = 0.5 * (moment_qij[1,1] * X1 * X1 + moment_qij[2,2] * X2 * X2 + moment_qij[2,1] * X1 * X2 + moment_qij[1,2] * X2 * X1) / ((r + eps)**5)
         return quadrupole_xy, quadrupole_xz, quadrupole_yz
 
     def create_sphere(center, radius, color, opacity=0.8):
@@ -256,8 +271,10 @@ def server(input, output, session):
     def plot_rho_pointlike():
         if input.dark_mode() == "dark":
             cmap = berlin_plotly
+            zmax = 1.1
         else:
             cmap = 'RdBu_r'
+            zmax = 1
 
         rho_in = set_rho_pointlike()
 
@@ -267,7 +284,7 @@ def server(input, output, session):
             y=x2_axis,
             colorscale=cmap,
             zmin=-1,
-            zmax=1,
+            zmax=zmax,
             showscale=False,
         ))
 
@@ -284,8 +301,10 @@ def server(input, output, session):
     def charge_density_plot():
         if input.dark_mode() == "dark":
             template = "plotly_dark"
+            bg_color = grey_bg
         else:
             template = "plotly_white"
+            bg_color = 'white'
 
         if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
             fig = plot_rho_pointlike()
@@ -295,6 +314,7 @@ def server(input, output, session):
 
         fig.update_layout(
             template=template,
+            paper_bgcolor=bg_color,
             title="Charge density",
             title_x=0.5,
             xaxis_title="X",
@@ -308,9 +328,13 @@ def server(input, output, session):
         if input.dark_mode() == "dark":
             template = "plotly_dark"
             cmap = berlin_plotly
+            zmax = 1.1
+            bg_color = grey_bg
         else:
             template = "plotly_white"
             cmap = 'RdBu_r'
+            zmax = 1
+            bg_color = 'white'
 
         x_label = "X"
         y_label = "Y"
@@ -328,13 +352,14 @@ def server(input, output, session):
             x=x1_axis,
             y=x2_axis,
             zmin=-1,
-            zmax=1,
+            zmax=zmax,
             showscale=False,
             colorscale=cmap,
         ))
 
         fig.update_layout(
             template=template,
+            paper_bgcolor=bg_color,
             width=300,
             height=300,
             title="Monopole potential",
@@ -350,9 +375,13 @@ def server(input, output, session):
         if input.dark_mode() == "dark":
             template = "plotly_dark"
             cmap = berlin_plotly
+            zmax = 1.1
+            bg_color = grey_bg
         else:
             template = "plotly_white"
             cmap = 'RdBu_r'
+            zmax = 1
+            bg_color = 'white'
 
 
         phi_di_xy, phi_di_xz, phi_di_yz = calculate_dipole()
@@ -373,13 +402,14 @@ def server(input, output, session):
             x=x1_axis,
             y=x2_axis,
             zmin=-1,
-            zmax=1,
+            zmax=zmax,
             showscale=False,
             colorscale=cmap,
         ))
 
         fig.update_layout(
             template=template,
+            paper_bgcolor=bg_color,
             width=300,
             height=300,
             title="Dipole potential",
@@ -395,9 +425,13 @@ def server(input, output, session):
         if input.dark_mode() == "dark":
             template = "plotly_dark"
             cmap = berlin_plotly
+            zmax = 1.1
+            bg_color = grey_bg
         else:
             template = "plotly_white"
             cmap = 'RdBu_r'
+            zmax = 1
+            bg_color = 'white'
 
 
 
@@ -419,13 +453,14 @@ def server(input, output, session):
             x=x1_axis,
             y=x2_axis,
             zmin=-1,
-            zmax=1,
+            zmax=zmax,
             showscale=False,
             colorscale=cmap,
         ))
 
         fig.update_layout(
             template=template,
+            paper_bgcolor=bg_color,
             width=300,
             height=300,
             title="Quadrupole potential",
@@ -441,9 +476,13 @@ def server(input, output, session):
         if input.dark_mode() == "dark":
             template = "plotly_dark"
             cmap = berlin_plotly
+            zmax = 1.1
+            bg_color = grey_bg
         else:
             template = "plotly_white"
             cmap = 'RdBu_r'
+            zmax = 1
+            bg_color = 'white'
 
         phi_mono = calculate_monopole()
         phi_di_xy, phi_di_xz, phi_di_yz = calculate_dipole()
@@ -469,13 +508,14 @@ def server(input, output, session):
             x=x1_axis,
             y=x2_axis,
             zmin=-1,
-            zmax=1,
+            zmax=zmax,
             showscale=False,
             colorscale=cmap,
         ))
 
         fig.update_layout(
             template=template,
+            paper_bgcolor=bg_color,
             width=300,
             height=300,
             title="Total potential",
