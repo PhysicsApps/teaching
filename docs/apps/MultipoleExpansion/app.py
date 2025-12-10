@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import plotly.colors as pc
 from shinywidgets import render_plotly
@@ -37,21 +38,22 @@ app_ui = ui.page_sidebar(
                 ),
              ),
             ui.nav_panel("Clickable",
-                output_widget(
+                ui.output_plot(
                 "charge_density_clickable",
-                #click=True,
+                click=True,
                 width="250px", height="250px"
                 ),
                 ui.input_radio_buttons(
                 'charge_sign',
                     "Select charge",
-                    {"charge_pos": "Positive", "charge_neg": "negative"},
+                    {"positive": "Positive", "negative": "Negative"},
                 ),
                 ui.input_action_button(
-                    'delete_all',
-                    "Delete"
+                    'clear_charges',
+                    "Clear charges",
                 ),
              ),
+            id="selected_scenario",
         ),
         ui.input_radio_buttons(
           'plane_phi',
@@ -99,19 +101,31 @@ def server(input, output, session):
     [X1, X2] = np.meshgrid(x1_axis, x2_axis)
 
     r = np.sqrt(X1 ** 2 + X2 ** 2)
-    rho = np.zeros_like(X1)
 
+    rho_clickable = reactive.value(np.zeros_like(X1))
+
+    grey_bg_pl = (28/255,30/255,32/255)
     grey_bg = 'rgb(28, 30, 32)'
 
     # Update click data when plot is clicked
-    # @reactive.effect
-    # def _():
-        # if input.fourier_plot_click() is not None:
-            # click_data.set(input.fourier_plot_click())
-            # ui.update_slider('event_x', value=input.fourier_plot_click()['x'])
-            # ui.update_slider('event_y', value=input.fourier_plot_click()['y'])
-            # One could actually calculate everything here and then only use the resulting data in the plots
+    @reactive.effect
+    @reactive.event(input.charge_density_clickable_click)
+    def handle_plot_click():
+        click = input.charge_density_clickable_click()
+        if click is not None:
+            x_click = click["x"]
+            y_click = click["y"]
+            charge_value = 1
+            if input.charge_sign() == "negative":
+                charge_value = -1
 
+            rho_clickable.set(rho_clickable() + charge_value / (2 * np.pi * sigma ** 2) * np.exp(
+                -0.5 * ((X1 - x_click) ** 2 + (X2 - y_click) ** 2) / (sigma ** 2)))
+
+    @reactive.effect
+    @reactive.event(input.clear_charges)
+    def clear_all_charges():
+        rho_clickable.set(np.zeros_like(X1))
 
     @render.text
     def value():
@@ -119,7 +133,12 @@ def server(input, output, session):
 
 
     def calculate_moments_pointlike():
-        rho_new = set_rho_pointlike()
+        rho_new = np.zeros_like(X1)
+        if input.selected_scenario() == 'Examples':
+            rho_new = set_rho_pointlike()
+        if input.selected_scenario() == 'Clickable':
+            rho_new = rho_clickable()
+
         moment_q = np.trapezoid(x1_axis, np.trapezoid(x2_axis, rho_new))
 
         moment_px = np.trapezoid(x2_axis, np.trapezoid(x1_axis, X1 * rho_new))
@@ -139,7 +158,7 @@ def server(input, output, session):
     def calculate_monopole():
         moment_q = 0
 
-        if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+        if input.selected_scenario() == 'Clickable' or input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
             moment_q, moment_p, moment_qij = calculate_moments_pointlike()
 
         if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
@@ -151,7 +170,7 @@ def server(input, output, session):
     def calculate_dipole():
         moment_p = np.array([0, 0, 0])
 
-        if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+        if input.selected_scenario() == 'Clickable' or input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
             moment_q, moment_p, moment_qij = calculate_moments_pointlike()
 
         if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
@@ -164,7 +183,7 @@ def server(input, output, session):
 
     def calculate_quadrupole():
         moment_qij = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
-        if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+        if input.selected_scenario() == 'Clickable' or input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
             moment_q, moment_p, moment_qij = calculate_moments_pointlike()
 
         if input.charge_scenario() == "quadru_trap1":
@@ -320,6 +339,45 @@ def server(input, output, session):
             xaxis_title="X",
             yaxis_title="Y"
         )
+
+        return fig
+
+    @render.plot
+    def charge_density_clickable():
+
+        if input.dark_mode() == "dark":
+            text_color = 'white'
+            bg_color = grey_bg_pl
+            cmap = berlin
+            zmax = 1.1
+        else:
+            text_color = 'black'
+            bg_color = 'white'
+            cmap = 'RdBu_r'
+            zmax = 1
+
+
+        fig, axs = plt.subplots()
+        fig.patch.set_facecolor(bg_color)
+        axs.set_xlim(-1.5, 1.5)
+        axs.set_ylim(-1.5, 1.5)
+        axs.grid(True, alpha=0.3)
+        axs.tick_params(axis='y', colors=text_color)
+        axs.tick_params(axis='x', colors=text_color)
+        axs.set_xlabel("X", color=text_color)
+        axs.set_ylabel("Y", color=text_color)
+
+        current_rho = rho_clickable()
+
+        axs.imshow(current_rho,
+                   extent=(-10, 10, -10, 10),
+                   origin='lower',
+                   cmap=cmap,
+                   clim=(-1, zmax),
+                   )
+
+        axs.set_title("Charge density", color=text_color)
+
 
         return fig
 
