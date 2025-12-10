@@ -42,9 +42,10 @@ app_ui = ui.page_sidebar(
                 click=True,
                 width="270px", height="270px"
                 ),
+                ui.p("Click on the figure to create a point charge."),
                 ui.input_radio_buttons(
                 'charge_sign',
-                    "Select charge",
+                    "Select charge value",
                     {"positive": "Positive", "negative": "Negative"},
                 ),
                 ui.input_action_button(
@@ -54,6 +55,7 @@ app_ui = ui.page_sidebar(
              ),
             id="selected_scenario",
         ),
+        ui.hr(style="margin-top: 5px; margin-bottom: 5px;"),
         ui.input_radio_buttons(
           'plane_phi',
             "Show potential in ... plane",
