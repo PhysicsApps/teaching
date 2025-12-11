@@ -1,3 +1,2 @@
 numpy
-palmerpenguins
 plotly
