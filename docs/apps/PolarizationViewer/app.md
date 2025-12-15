@@ -11,6 +11,6 @@ hide:
   - toc
 draft: true
 ---
-# Polarization viewer
+# Polarization Viewer
 <!-- more -->
 {{embed_app("100%", "800px")}}

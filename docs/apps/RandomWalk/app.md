@@ -1,17 +1,15 @@
 ---
 authors:
-  - aherzig
-  - lseiffert
+  - ptuemmler
 categories:
-  - Physics
   - Mathematics
 tags:
   - Draft
-date: 2025-11-16
+date: 2025-11-02
 hide:
   - toc
 draft: true
 ---
-# Multipole Expansion
+# Random Walk
 <!-- more -->
 {{embed_app("100%", "800px")}}

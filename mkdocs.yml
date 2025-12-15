@@ -69,6 +69,7 @@ plugins:
       - Numerics
       - Physics
     pagination_per_page: 5
+    post_excerpt_max_authors: 5
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
