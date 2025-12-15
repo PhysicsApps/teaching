@@ -12,6 +12,6 @@ hide:
   - toc
 draft: true
 ---
-# Multipole expansion
+# Multipole Expansion
 <!-- more -->
 {{embed_app("100%", "800px")}}
