@@ -1,0 +1,484 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import plotly.colors as pc
+from shinywidgets import render_plotly
+from shiny import App, render, ui, reactive
+from shinywidgets import output_widget, render_widget
+from matplotlib.colors import LinearSegmentedColormap
+
+berlin_cmap = [(0.621082, 0.690182, 0.999507),(0.612157, 0.689228, 0.995374),(0.603202, 0.688250, 0.991239),(0.594200, 0.687257, 0.987092),(0.585165, 0.686248, 0.982922),(0.576088, 0.685222, 0.978733),(0.566961, 0.684166, 0.974524),(0.557791, 0.683098, 0.970288),(0.548590, 0.681992, 0.966016),(0.539327, 0.680859, 0.961704),(0.530034, 0.679691, 0.957350),(0.520687, 0.678484, 0.952942),(0.511295, 0.677230, 0.948466),(0.501863, 0.675908, 0.943923),(0.492368, 0.674526, 0.939297),(0.482832, 0.673075, 0.934574),(0.473239, 0.671530, 0.929751),(0.463610, 0.669898, 0.924806),(0.453931, 0.668152, 0.919735),(0.444213, 0.666275, 0.914518),(0.434440, 0.664271, 0.909136),(0.424645, 0.662120, 0.903586),(0.414818, 0.659791, 0.897845),(0.404975, 0.657289, 0.891905),(0.395137, 0.654579, 0.885750),(0.385296, 0.651674, 0.879368),(0.375493, 0.648536, 0.872757),(0.365742, 0.645164, 0.865903),(0.356059, 0.641552, 0.858801),(0.346453, 0.637692, 0.851451),(0.336982, 0.633574, 0.843855),(0.327642, 0.629189, 0.836017),(0.318487, 0.624551, 0.827937),(0.309539, 0.619657, 0.819628),(0.300784, 0.614497, 0.811108),(0.292309, 0.609115, 0.802379),(0.284098, 0.603485, 0.793470),(0.276205, 0.597634, 0.784386),(0.268595, 0.591580, 0.775143),(0.261308, 0.585335, 0.765780),(0.254368, 0.578908, 0.756296),(0.247753, 0.572328, 0.746719),(0.241464, 0.565596, 0.737066),(0.235515, 0.558748, 0.727351),(0.229842, 0.551802, 0.717600),(0.224503, 0.544750, 0.707805),(0.219485, 0.537628, 0.697998),(0.214694, 0.530433, 0.688190),(0.210172, 0.523193, 0.678377),(0.205889, 0.515897, 0.668578),(0.201771, 0.508598, 0.658787),(0.197878, 0.501258, 0.649030),(0.194172, 0.493903, 0.639287),(0.190556, 0.486541, 0.629572),(0.187112, 0.479181, 0.619898),(0.183752, 0.471826, 0.610241),(0.180500, 0.464474, 0.600622),(0.177365, 0.457117, 0.591037),(0.174264, 0.449788, 0.581483),(0.171224, 0.442474, 0.571966),(0.168242, 0.435172, 0.562486),(0.165292, 0.427884, 0.553021),(0.162439, 0.420608, 0.543603),(0.159545, 0.413370, 0.534210),(0.156739, 0.406147, 0.524856),(0.153905, 0.398932, 0.515524),(0.151122, 0.391757, 0.506230),(0.148346, 0.384591, 0.496972),(0.145641, 0.377462, 0.487751),(0.142879, 0.370343, 0.478544),(0.140138, 0.363257, 0.469389),(0.137466, 0.356204, 0.460239),(0.134777, 0.349162, 0.451147),(0.132079, 0.342150, 0.442085),(0.129401, 0.335173, 0.433042),(0.126735, 0.328195, 0.424036),(0.124090, 0.321259, 0.415071),(0.121456, 0.314347, 0.406144),(0.118899, 0.307460, 0.397234),(0.116316, 0.300608, 0.388376),(0.113731, 0.293781, 0.379546),(0.111187, 0.286980, 0.370748),(0.108613, 0.280217, 0.362004),(0.106159, 0.273497, 0.353280),(0.103670, 0.266776, 0.344594),(0.101183, 0.260108, 0.335952),(0.098776, 0.253467, 0.327342),(0.096347, 0.246850, 0.318783),(0.094059, 0.240264, 0.310267),(0.091788, 0.233727, 0.301758),(0.089506, 0.227245, 0.293318),(0.087341, 0.220800, 0.284914),(0.085142, 0.214360, 0.276576),(0.083069, 0.207981, 0.268249),(0.081098, 0.201631, 0.259992),(0.079130, 0.195361, 0.251781),(0.077286, 0.189136, 0.243589),(0.075571, 0.182943, 0.235502),(0.073993, 0.176835, 0.227434),(0.072410, 0.170785, 0.219433),(0.071045, 0.164795, 0.211500),(0.069767, 0.158901, 0.203628),(0.068618, 0.153040, 0.195818),(0.067560, 0.147319, 0.188124),(0.066665, 0.141671, 0.180452),(0.065923, 0.136076, 0.172917),(0.065339, 0.130695, 0.165458),(0.064911, 0.125349, 0.158169),(0.064636, 0.120132, 0.150946),(0.064517, 0.115070, 0.143889),(0.064554, 0.110222, 0.136957),(0.064749, 0.105427, 0.130230),(0.065100, 0.100849, 0.123569),(0.065383, 0.096469, 0.117170),(0.065574, 0.092338, 0.111008),(0.065892, 0.088201, 0.104982),(0.066388, 0.084134, 0.099288),(0.067108, 0.080051, 0.093829),(0.068193, 0.076099, 0.088470),(0.069720, 0.072283, 0.083025),(0.071639, 0.068654, 0.077544),(0.073978, 0.065058, 0.072110),(0.076596, 0.061657, 0.066651),(0.079637, 0.058550, 0.061133),(0.082963, 0.055666, 0.055745),(0.086537, 0.052997, 0.050336),(0.090315, 0.050699, 0.045040),(0.094260, 0.048753, 0.039773),(0.098319, 0.047041, 0.034683),(0.102458, 0.045624, 0.030074),(0.106732, 0.044705, 0.026012),(0.110986, 0.043972, 0.022379),(0.115245, 0.043596, 0.019150),(0.119547, 0.043567, 0.016299),(0.123812, 0.043861, 0.013797),(0.128105, 0.044459, 0.011588),(0.132315, 0.045229, 0.009531),(0.136451, 0.046164, 0.007895),(0.140635, 0.047374, 0.006502),(0.144884, 0.048634, 0.005327),(0.149230, 0.049836, 0.004346),(0.153685, 0.050997, 0.003537),(0.158309, 0.052130, 0.002882),(0.163014, 0.053218, 0.002363),(0.167811, 0.054240, 0.001963),(0.172736, 0.055172, 0.001669),(0.177801, 0.056018, 0.001469),(0.182863, 0.056820, 0.001340),(0.188058, 0.057574, 0.001262),(0.193233, 0.058514, 0.001226),(0.198463, 0.059550, 0.001227),(0.203778, 0.060501, 0.001260),(0.209092, 0.061486, 0.001322),(0.214470, 0.062710, 0.001412),(0.219897, 0.063823, 0.001529),(0.225345, 0.065027, 0.001675),(0.230856, 0.066297, 0.001853),(0.236422, 0.067645, 0.002068),(0.242016, 0.069092, 0.002325),(0.247681, 0.070458, 0.002632),(0.253390, 0.071986, 0.002998),(0.259176, 0.073640, 0.003435),(0.264997, 0.075237, 0.003955),(0.270934, 0.076965, 0.004571),(0.276928, 0.078822, 0.005301),(0.283017, 0.080819, 0.006161),(0.289196, 0.082879, 0.007171),(0.295466, 0.085075, 0.008349),(0.301858, 0.087460, 0.009726),(0.308387, 0.089912, 0.011455),(0.315024, 0.092530, 0.013324),(0.321806, 0.095392, 0.015413),(0.328738, 0.098396, 0.017780),(0.335805, 0.101580, 0.020449),(0.343036, 0.104977, 0.023440),(0.350413, 0.108640, 0.026771),(0.357947, 0.112564, 0.030456),(0.365629, 0.116658, 0.034571),(0.373470, 0.120971, 0.039115),(0.381463, 0.125606, 0.043693),(0.389583, 0.130457, 0.048471),(0.397845, 0.135474, 0.053136),(0.406220, 0.140795, 0.057848),(0.414690, 0.146274, 0.062715),(0.423229, 0.151979, 0.067685),(0.431837, 0.157906, 0.073044),(0.440444, 0.164028, 0.078620),(0.449085, 0.170269, 0.084644),(0.457704, 0.176666, 0.090869),(0.466314, 0.183213, 0.097335),(0.474900, 0.189888, 0.104064),(0.483420, 0.196677, 0.111039),(0.491910, 0.203516, 0.118190),(0.500322, 0.210433, 0.125501),(0.508690, 0.217425, 0.132983),(0.516977, 0.224432, 0.140623),(0.525197, 0.231543, 0.148349),(0.533349, 0.238624, 0.156261),(0.541440, 0.245755, 0.164233),(0.549481, 0.252923, 0.172265),(0.557462, 0.260091, 0.180403),(0.565378, 0.267255, 0.188640),(0.573272, 0.274461, 0.196924),(0.581112, 0.281673, 0.205237),(0.588920, 0.288894, 0.213625),(0.596716, 0.296114, 0.222054),(0.604484, 0.303345, 0.230529),(0.612228, 0.310617, 0.239052),(0.619976, 0.317867, 0.247618),(0.627708, 0.325132, 0.256189),(0.635438, 0.332443, 0.264815),(0.643173, 0.339745, 0.273490),(0.650917, 0.347064, 0.282179),(0.658661, 0.354395, 0.290887),(0.666419, 0.361751, 0.299640),(0.674194, 0.369121, 0.308415),(0.681975, 0.376518, 0.317219),(0.689783, 0.383920, 0.326043),(0.697596, 0.391354, 0.334929),(0.705434, 0.398794, 0.343796),(0.713288, 0.406271, 0.352720),(0.721158, 0.413757, 0.361662),(0.729054, 0.421259, 0.370618),(0.736968, 0.428796, 0.379616),(0.744900, 0.436349, 0.388639),(0.752851, 0.443923, 0.397680),(0.760831, 0.451512, 0.406747),(0.768821, 0.459124, 0.415838),(0.776844, 0.466756, 0.424962),(0.784879, 0.474407, 0.434092),(0.792935, 0.482080, 0.443269),(0.801009, 0.489763, 0.452465),(0.809110, 0.497486, 0.461672),(0.817222, 0.505207, 0.470910),(0.825358, 0.512962, 0.480170),(0.833517, 0.520732, 0.489445),(0.841692, 0.528527, 0.498763),(0.849885, 0.536335, 0.508096),(0.858092, 0.544161, 0.517448),(0.866324, 0.552013, 0.526825),(0.874568, 0.559879, 0.536218),(0.882829, 0.567761, 0.545643),(0.891110, 0.575670, 0.555082),(0.899407, 0.583585, 0.564550),(0.907716, 0.591530, 0.574038),(0.916031, 0.599492, 0.583552),(0.924368, 0.607473, 0.593095),(0.932714, 0.615460, 0.602649),(0.941076, 0.623483, 0.612229),(0.949447, 0.631512, 0.621832),(0.957832, 0.639563, 0.631467),(0.966219, 0.647628, 0.641113),(0.974619, 0.655718, 0.650792),(0.983030, 0.663823, 0.660487),(0.991448, 0.671939, 0.670216),(0.999873, 0.680072, 0.679950)]
+#Taken from F. Crameri's scientific-colour-maps version 8.0.1.  https://doi.org/10.5281/zenodo.1243862 (included by default in newer matplotlib versions)
+berlin = LinearSegmentedColormap.from_list('berlin', berlin_cmap, N=256)
+def rgb_normalized_to_plotly(rgb_colors):
+    colorscale = []
+    n_colors = len(rgb_colors)
+
+    for i, rgb in enumerate(rgb_colors):
+        position = i / (n_colors - 1)
+        color = f'rgb({int(rgb[0] * 255)}, {int(rgb[1] * 255)}, {int(rgb[2] * 255)})'
+        colorscale.append([position, color])
+
+    return colorscale
+berlin_plotly = rgb_normalized_to_plotly(berlin_cmap)
+
+app_ui = ui.page_sidebar(
+    ui.sidebar(
+        ui.navset_pill(
+            ui.nav_panel("Examples",
+                output_widget(
+                "charge_density_plot",
+                width="250px", height="250px"
+                ),
+                ui.input_radio_buttons(
+                'charge_scenario',
+                    "Select charge distribution",
+                    {"monopole": "Monopole", "dipole": "Dipole", "quadrupole": "Quadrupole", "quadru_trap1": "Quadrupol trap 1", "quadru_trap2": "Quadrupol trap 2"},
+                ),
+             ),
+            ui.nav_panel("Clickable",
+                ui.output_plot(
+                "charge_density_clickable",
+                click=True,
+                width="270px", height="270px"
+                ),
+                ui.p("Click on the figure to create a point charge."),
+                ui.input_radio_buttons(
+                'charge_sign',
+                    "Select charge value",
+                    {"positive": "Positive", "negative": "Negative"},
+                ),
+                ui.input_action_button(
+                    'clear_charges',
+                    "Clear charges",
+                ),
+             ),
+            id="selected_scenario",
+        ),
+        ui.hr(style="margin-top: 5px; margin-bottom: 5px;"),
+        ui.input_radio_buttons(
+          'plane_phi',
+            "Show potential in ... plane",
+            {"xy": "XY", "xz": "XZ", "yz": "YZ"},
+        ),
+        # ui.output_text("value"),
+
+        ui.input_dark_mode(id='dark_mode'),
+        open='always',
+        width = "30%"
+    ),
+    ui.layout_column_wrap(
+        ui.output_plot(
+            "monopole_plot",
+            width="350px", height="350px"
+        ),
+        ui.output_plot(
+            "dipole_plot",
+            width="350px", height="350px"
+        ),
+    ),
+    ui.layout_column_wrap(
+        ui.output_plot(
+            "quadrupole_plot",
+            width="350px", height="350px"
+        ),
+        ui.output_plot(
+            "sum_plot",
+            width="350px", height="350px"
+        ),
+    ),
+)
+
+def server(input, output, session):
+    # some overall definitions and stuff
+    click_data = reactive.value(None)
+
+    eps = 1e-10
+
+    x1_axis = np.linspace(-10, 10, 500)
+    x2_axis = np.linspace(-10, 10, 500)
+
+    sigma = 0.05
+    [X1, X2] = np.meshgrid(x1_axis, x2_axis)
+
+    r = np.sqrt(X1 ** 2 + X2 ** 2)
+
+    rho_clickable = reactive.value(np.zeros_like(X1))
+
+    grey_bg_pl = (28/255,30/255,32/255)
+    grey_bg = 'rgb(28, 30, 32)'
+
+    # Update click data when plot is clicked
+    @reactive.effect
+    @reactive.event(input.charge_density_clickable_click)
+    def handle_plot_click():
+        click = input.charge_density_clickable_click()
+        if click is not None:
+            x_click = click["x"]
+            y_click = click["y"]
+            charge_value = 1
+            if input.charge_sign() == "negative":
+                charge_value = -1
+
+            rho_clickable.set(rho_clickable() + charge_value / (2 * np.pi * sigma ** 2) * np.exp(
+                -0.5 * ((X1 - x_click) ** 2 + (X2 - y_click) ** 2) / (sigma ** 2)))
+
+    @reactive.effect
+    @reactive.event(input.clear_charges)
+    def clear_all_charges():
+        rho_clickable.set(np.zeros_like(X1))
+
+    @render.text
+    def value():
+        return f"{input.plane_phi()}"
+
+
+    def calculate_moments_pointlike():
+        rho_new = np.zeros_like(X1)
+        if input.selected_scenario() == 'Examples':
+            rho_new = set_rho_pointlike()
+        if input.selected_scenario() == 'Clickable':
+            rho_new = rho_clickable()
+
+        moment_q = np.trapezoid(x1_axis, np.trapezoid(x2_axis, rho_new))
+
+        moment_px = np.trapezoid(x2_axis, np.trapezoid(x1_axis, X1 * rho_new))
+        moment_py = np.trapezoid(x2_axis, np.trapezoid(x1_axis, X2 * rho_new))
+        moment_p = np.array([moment_px, moment_py, 0])
+
+        moment_qxx = np.trapezoid(x2_axis, np.trapezoid(x1_axis, rho_new * (3 * X1 * X1 - r ** 2)))
+        moment_qyy = np.trapezoid(x2_axis, np.trapezoid(x1_axis, rho_new * (3 * X2 * X2 - r ** 2)))
+        moment_qzz = np.trapezoid(x2_axis, np.trapezoid(x1_axis, rho_new * (-r ** 2)))
+        moment_qxy = np.trapezoid(x2_axis, np.trapezoid(x1_axis, rho_new * (3 * X1 * X2)))
+        moment_qyx = np.trapezoid(x2_axis, np.trapezoid(x1_axis, rho_new * (3 * X2 * X1)))
+
+        moment_qij = np.array([[moment_qxx, moment_qxy, 0], [moment_qyx, moment_qyy, 0], [0, 0, moment_qzz]])
+
+        return moment_q, moment_p, moment_qij
+
+    def calculate_monopole():
+        moment_q = 0
+
+        if input.selected_scenario() == 'Examples':
+            if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+                moment_q, moment_p, moment_qij = calculate_moments_pointlike()
+
+            if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
+                moment_q = 0
+
+        if input.selected_scenario() == 'Clickable':
+            moment_q, moment_p, moment_qij = calculate_moments_pointlike()
+
+        monopole = moment_q/(r+eps)
+        return monopole
+
+    def calculate_dipole():
+        moment_p = np.array([0, 0, 0])
+
+        if input.selected_scenario() == 'Examples':
+            if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+                moment_q, moment_p, moment_qij = calculate_moments_pointlike()
+
+            if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
+                moment_p = np.array([0, 0, 0])
+
+        if input.selected_scenario() == 'Clickable':
+            moment_q, moment_p, moment_qij = calculate_moments_pointlike()
+
+        dipole_xy = (moment_p[0] * x1_axis + moment_p[1] * x2_axis) / ((r + eps)**3)
+        dipole_xz = (moment_p[0] * x1_axis + moment_p[2] * x2_axis) / ((r + eps)**3)
+        dipole_yz = (moment_p[1] * x1_axis + moment_p[2] * x2_axis) / ((r + eps)**3)
+        return dipole_xy, dipole_xz, dipole_yz
+
+    def calculate_quadrupole():
+        moment_qij = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
+
+        if input.selected_scenario() == 'Examples':
+            if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+                moment_q, moment_p, moment_qij = calculate_moments_pointlike()
+
+            if input.charge_scenario() == "quadru_trap1":
+                moment_qij = np.array([[3, 0, 0], [0, 3, 0], [0, 0, -6]])
+
+            if input.charge_scenario() == "quadru_trap2":
+                moment_qij = np.array([[-3, 0, 0], [0, -3, 0], [0, 0, 6]])
+
+        if input.selected_scenario() == 'Clickable':
+            moment_q, moment_p, moment_qij = calculate_moments_pointlike()
+
+        quadrupole_xy = 0.5 * (moment_qij[0,0] * X1 * X1 + moment_qij[1,1] * X2 * X2 + moment_qij[1,0] * X1 * X2 + moment_qij[0,1] * X2 * X1) / ((r + eps)**5)
+        quadrupole_xz = 0.5 * (moment_qij[0,0] * X1 * X1 + moment_qij[2,2] * X2 * X2 + moment_qij[2,0] * X1 * X2 + moment_qij[0,2] * X2 * X1) / ((r + eps)**5)
+        quadrupole_yz = 0.5 * (moment_qij[1,1] * X1 * X1 + moment_qij[2,2] * X2 * X2 + moment_qij[2,1] * X1 * X2 + moment_qij[1,2] * X2 * X1) / ((r + eps)**5)
+        return quadrupole_xy, quadrupole_xz, quadrupole_yz
+
+    def create_sphere(center, radius, color, opacity=0.8):
+        u = np.linspace(0, 2 * np.pi, 25)
+        v = np.linspace(0, np.pi, 25)
+        x = radius * np.outer(np.cos(u), np.sin(v)) + center[0]
+        y = radius * np.outer(np.sin(u), np.sin(v)) + center[1]
+        z = radius * np.outer(np.ones(np.size(u)), np.cos(v)) + center[2]
+
+        return go.Surface(x=x, y=y, z=z,
+                          colorscale=[[0, color], [1, color]],
+                          showscale=False,
+                          opacity=opacity)
+
+    def create_torus(major_radius, minor_radius, color):
+        u = np.linspace(0, 2 * np.pi, 50)
+        v = np.linspace(0, 2 * np.pi, 50)
+        u, v = np.meshgrid(u, v)
+
+        x = (major_radius + minor_radius * np.cos(u)) * np.cos(v)
+        y = (major_radius + minor_radius * np.cos(u)) * np.sin(v)
+        z = minor_radius * np.sin(u)
+
+        return go.Surface(x=x, y=y, z=z,
+                          colorscale=[[0, color], [1, color]],
+                          showscale=False,
+                          opacity=0.8)
+
+    def plot_rho_quadru_trap():
+        if input.dark_mode() == "dark":
+            colors = pc.sample_colorscale(berlin_plotly, [0, 1])
+            blue = colors[0]
+            red = colors[1]
+            sphere_color = 'black'
+        else:
+            colors = pc.sample_colorscale('RdBu_r', [0, 1])
+            blue = colors[0]
+            red = colors[1]
+            sphere_color = 'white'
+
+        color_1 = blue
+        color_2 = red
+
+        if input.charge_scenario() == "quadru_trap2":
+            color_1 = red
+            color_2 = blue
+
+        sphere0 = create_sphere([0,0,0], 1, sphere_color, opacity=0.35)
+        sphere1 = create_sphere([0, 0, 1], 0.1, color_1)
+        sphere2 = create_sphere([0, 0, -1], 0.1, color_1)
+        torus = create_torus(1, 0.025, color_2)
+
+        fig = go.Figure(data=[sphere0, sphere1, sphere2, torus])
+
+        fig.update_layout(
+            scene=dict(
+                xaxis=dict(range=[-1.2, 1.2], title='X'),
+                yaxis=dict(range=[-1.2, 1.2], title='Y'),
+                zaxis=dict(range=[-1.2, 1.2], title='Z'),
+                aspectmode='cube',
+                #camera=dict(eye=dict(x=2.3, y=2.3, z=2.3)),
+            ),
+            width=250, height=250,
+            #margin=dict(l=60, r=10, b=60, t=10),
+        )
+
+        return fig
+
+    def set_rho_pointlike():
+        pointlike_r = []
+        charge = []
+
+        rho_new = np.zeros_like(X1)
+
+        if input.charge_scenario() == "monopole":
+            pointlike_r = np.array([[0, 0, 0]])
+            charge = [1]
+        if input.charge_scenario() == "dipole":
+            pointlike_r = np.array([[-1, 0, 0], [1, 0, 0]])
+            charge = [1, -1]
+        if input.charge_scenario() == "quadrupole":
+            pointlike_r = np.array([[0, 1, 0], [0, -1, 0], [-1, 0, 0], [1, 0, 0]])
+            charge = [1, 1, -1, -1]
+
+        number_of_charges = np.shape(pointlike_r)[0]
+
+        for i in np.arange(number_of_charges):
+            rho_new = rho_new + charge[i] / (2 * np.pi * sigma ** 2) * np.exp(
+                -0.5 * ((X1 - pointlike_r[i, 0]) ** 2 + (X2 - pointlike_r[i, 1]) ** 2) / (sigma ** 2))
+
+        return rho_new
+
+    def plot_rho_pointlike():
+        if input.dark_mode() == "dark":
+            cmap = berlin_plotly
+            zmax = 1.1
+        else:
+            cmap = 'RdBu_r'
+            zmax = 1
+
+        rho_in = set_rho_pointlike()
+
+        fig = go.Figure(data=go.Heatmap(
+            z=rho_in,
+            x=x1_axis,
+            y=x2_axis,
+            colorscale=cmap,
+            zmin=-1,
+            zmax=zmax,
+            showscale=False,
+        ))
+
+        fig.update_layout(
+            width=250,
+            height=250,
+            xaxis=dict(range=[-1.5, 1.5]),
+            yaxis=dict(range=[-1.5, 1.5]),
+        )
+
+        return fig
+
+    @render_plotly
+    def charge_density_plot():
+        if input.dark_mode() == "dark":
+            template = "plotly_dark"
+            bg_color = grey_bg
+        else:
+            template = "plotly_white"
+            bg_color = 'white'
+
+        if input.charge_scenario() == "monopole" or input.charge_scenario() == "dipole" or input.charge_scenario() == "quadrupole":
+            fig = plot_rho_pointlike()
+
+        if input.charge_scenario() == "quadru_trap1" or input.charge_scenario() == "quadru_trap2":
+            fig = plot_rho_quadru_trap()
+
+        fig.update_layout(
+            template=template,
+            paper_bgcolor=bg_color,
+            title="Charge density",
+            title_x=0.5,
+            xaxis_title="X",
+            yaxis_title="Y"
+        )
+
+        return fig
+
+    @render.plot
+    def charge_density_clickable():
+
+        if input.dark_mode() == "dark":
+            text_color = 'white'
+            bg_color = grey_bg_pl
+            cmap = berlin
+            zmax = 1.1
+        else:
+            text_color = 'black'
+            bg_color = 'white'
+            cmap = 'RdBu_r'
+            zmax = 1
+
+
+        fig, ax = plt.subplots()
+        fig.patch.set_facecolor(bg_color)
+        ax.set_xlim(-1.5, 1.5)
+        ax.set_ylim(-1.5, 1.5)
+        ax.grid(True, alpha=0.3)
+        ax.tick_params(axis='y', colors=text_color)
+        ax.tick_params(axis='x', colors=text_color)
+        ax.set_xlabel("X", color=text_color)
+        ax.set_ylabel("Y", color=text_color)
+        ax.set_xticks([-1, 0, 1])
+        ax.set_yticks([-1, 0, 1])
+
+        current_rho = rho_clickable()
+
+        ax.imshow(current_rho,
+                   extent=(-10, 10, -10, 10),
+                   origin='lower',
+                   cmap=cmap,
+                   clim=(-1, zmax),
+                   )
+
+        ax.set_title("Charge density", color=text_color)
+
+        return fig
+
+    def prepare_plot(potential_xy, potential_xz, potential_yz):
+        if input.dark_mode() == "dark":
+            text_color = 'white'
+            bg_color = grey_bg_pl
+            cmap = berlin
+            zmax = 1.1
+        else:
+            text_color = 'black'
+            bg_color = 'white'
+            cmap = 'RdBu_r'
+            zmax = 1
+
+        x_label = "X"
+        y_label = "Y"
+
+        potential = potential_xy
+        if input.plane_phi() == "xz":
+            potential = potential_xz
+            y_label = "Z"
+        if input.plane_phi() == "yz":
+            potential = potential_yz
+            x_label = "Y"
+            y_label = "Z"
+
+        fig, ax = plt.subplots()
+        fig.patch.set_facecolor(bg_color)
+        ax.tick_params(axis='y', colors=text_color)
+        ax.tick_params(axis='x', colors=text_color)
+        ax.set_xticks([-10, 0, 10])
+        ax.set_yticks([-10, 0, 10])
+        ax.yaxis.label.set_color(text_color)
+        ax.xaxis.label.set_color(text_color)
+
+        ax.spines['bottom'].set_color(text_color)
+        ax.spines['top'].set_color(text_color)
+        ax.spines['right'].set_color(text_color)
+        ax.spines['left'].set_color(text_color)
+
+        ax.imshow(potential,
+                  extent=(-10, 10, -10, 10),
+                  clim=(-1, zmax),
+                  origin='lower',
+                  cmap=cmap, )
+        ax.title.set_color(color=text_color)
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+
+        return fig, ax
+
+    @render.plot
+    def monopole_plot():
+        phi_mono = calculate_monopole()
+        fig, ax = prepare_plot(phi_mono, phi_mono, phi_mono)
+        ax.set_title("Monopole potential")
+        return fig
+
+    @render.plot
+    def dipole_plot():
+        phi_di_xy, phi_di_xz, phi_di_yz = calculate_dipole()
+        fig, ax = prepare_plot(phi_di_xy, phi_di_xz, phi_di_yz)
+        ax.set_title("Dipole potential")
+        return fig
+
+    @render.plot
+    def quadrupole_plot():
+        phi_quad_xy, phi_quad_xz, phi_quad_yz = calculate_quadrupole()
+        fig, ax = prepare_plot(phi_quad_xy, phi_quad_xz, phi_quad_yz)
+        ax.set_title("Quadrupole potential")
+        return fig
+
+    @render.plot
+    def sum_plot():
+
+        phi_mono = calculate_monopole()
+        phi_di_xy, phi_di_xz, phi_di_yz = calculate_dipole()
+        phi_quad_xy, phi_quad_xz, phi_quad_yz = calculate_quadrupole()
+        pot_xy = phi_mono + phi_di_xy + phi_quad_xy
+        pot_xz = phi_mono + phi_di_xz + phi_quad_xz
+        pot_yz = phi_mono + phi_di_yz + phi_quad_yz
+
+        fig, ax = prepare_plot(pot_xy, pot_xz, pot_yz)
+        ax.set_title("Total potential")
+
+        return fig
+
+app = App(app_ui, server, debug=True)
