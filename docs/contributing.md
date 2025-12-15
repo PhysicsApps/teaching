@@ -75,7 +75,9 @@ This is a simple example to showcase different matplotlib apps using Shiny for P
 ## Simplest matplotlib plot
 {{embed_app("100%", "500px", "automatic")}}
 ## Animations using matplotlib
+While it is in principle possible to create animations using Matplotlib in Shiny for Python, it requires some additional setup compared to static plots. The following example demonstrates how to create an animated plot using Matplotlib within a Shiny app.
 {{embed_app("100%", "500px", "animated")}}
+This approach might lead to flickering in certain browsers, as the entire plot is re-rendered for each frame of the animation. For smoother animations, consider using libraries specifically designed for interactive visualizations, such as Plotly or Bokeh, which integrate more seamlessly with web applications.
 ```
 This documentation differs slightly from standard markdown files, as it includes a few additional necessary sections.
 The front matter at the top of the file is used to specify metadata about the tool, such as the authors, categories, tags, and date.
