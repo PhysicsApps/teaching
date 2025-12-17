@@ -7,45 +7,18 @@ tags:
   - Templates
 date: 
     created: 2025-07-01
-    updated: 2025-11-17
+    updated: 2025-12-17
 hide:
   - toc
 ---
 
 # Plotly Template
-Quick example for a simple plotly app.
+Plotly is a powerful graphing library that makes interactive, publication-quality graphs online. It is well-suited for both static and animated plots, making it a great choice for web applications.
 <!-- more -->
-
-{{embed_app("100%", "550px")}}
-
-```python title="apps/TemplatePlotly/app.py" linenums="1"
-import plotly.express as px
-from palmerpenguins import load_penguins
-from shiny.express import input, ui
-from shinywidgets import render_widget
-
-penguins = load_penguins()
-
-ui.input_slider("n", "Number of bins", 1, 100, 20)
-ui.input_dark_mode(id="dark_mode")
-
-@render_widget
-def plot():
-    if input.dark_mode() == "dark":
-        template = "plotly_dark"
-    else:
-        template = "plotly_white"
-
-    scatterplot = px.histogram(
-        data_frame=penguins,
-        x="body_mass_g",
-        nbins=input.n(),
-    ).update_layout(
-        template=template,
-        title={"text": "Penguin Mass", "x": 0.5},
-        yaxis_title="Count",
-        xaxis_title="Body Mass (g)",
-    )
-
-    return scatterplot
-```
+## Simplest plotly plot
+The following example demonstrates how to create a simple static plot using Plotly within a Shiny app
+{{embed_app("100%", "550px", "static")}}
+## Animations using plotly
+Plotly makes it easy to create animated plots with minimal setup. The following example demonstrates how to create an animated plot using Plotly within a Shiny app.
+{{embed_app("100%", "550px", "animated")}}
+Note that this approach requires animations that loop smoothly. The entire frame stack must be preloaded when the plot is first rendered, which may lead to longer initial load times for complex animations. Additionally, this precludes a true "live" animation that updates based on real-time or on-the-fly generated data.
