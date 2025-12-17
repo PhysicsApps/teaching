@@ -16,7 +16,7 @@ hide:
 Quick example for a simple plotly app.
 <!-- more -->
 
-{{embed_app("100%", "550px")}}
+{{embed_app("100%", "550px", "static")}}
 
 ```python title="apps/TemplatePlotly/app.py" linenums="1"
 import plotly.express as px
@@ -49,3 +49,5 @@ def plot():
 
     return scatterplot
 ```
+
+{{embed_app("100%", "550px", "animated")}}

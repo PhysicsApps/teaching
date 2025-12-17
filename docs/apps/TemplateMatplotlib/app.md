@@ -17,7 +17,7 @@ Quick example for a simple matplotlib app. Matplotlib is a popular Python librar
 <!-- more -->
 This is a simple example to showcase different matplotlib apps using Shiny for Python.
 ## Simplest matplotlib plot
-{{embed_app("100%", "500px", "automatic")}}
+{{embed_app("100%", "500px", "static")}}
 ## Animations using matplotlib
 While it is in principle possible to create animations using Matplotlib in Shiny for Python, it requires some additional setup compared to static plots. The following example demonstrates how to create an animated plot using Matplotlib within a Shiny app.
 {{embed_app("100%", "500px", "animated")}}
