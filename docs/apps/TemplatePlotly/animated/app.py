@@ -39,7 +39,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         # Generate Plotly HTML without full document wrapper
         plot_html = fig.to_html(
             auto_play=False, # Disable animation here, because we will control it via JavaScript injection below
-            include_plotlyjs="cdn",
+            include_plotlyjs=True,#"cdn",
             full_html=False,
             div_id="animated_plot"
         )
@@ -56,7 +56,7 @@ def server(input: Inputs, output: Outputs, session: Session):
                 function loop() {
                     Plotly.animate(gd, null, {
                         frame: { duration: 10, redraw: false },
-                        transition: { duration: 10 }
+                        transition: { duration: 0 }
                     }).then(loop);
                 }
         
