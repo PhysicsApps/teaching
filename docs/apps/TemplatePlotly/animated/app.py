@@ -12,8 +12,7 @@ app_ui = ui.page_sidebar(
 )
 
 def server(input: Inputs, output: Outputs, session: Session):
-    x = np.linspace(0, 2 * np.pi, 100, endpoint=False)
-    loop_started = False
+    x = np.linspace(0, 2 * np.pi, 100)
 
     @render.ui
     def plot():
@@ -21,12 +20,13 @@ def server(input: Inputs, output: Outputs, session: Session):
         template = "plotly_dark" if input.dark_mode() == "dark" else "plotly_white"
 
         amp = input.amplitude()
+        num_frames = 100
 
         fig = go.Figure(
             data=[go.Scatter(x=x, y=amp * np.sin(x))],
             frames=[
-                go.Frame(data=[go.Scatter(y=amp * np.sin(x + i / 10))])
-                for i in range(60)
+                go.Frame(data=[go.Scatter(y=amp * np.sin(x + i / num_frames * 2 * np.pi))])
+                for i in range(num_frames)
             ]
         )
 
@@ -43,14 +43,14 @@ def server(input: Inputs, output: Outputs, session: Session):
             full_html=False,
             div_id="animated_plot"
         )
-        # JavaScript to force infinite looping
+
+        # Inject JavaScript to force infinite looping
         loop_script = """
         <script>
         (function () {
             function startAnimation() {
                 const gd = document.getElementById("animated_plot");
                 if (!gd || gd.__loopStarted) return;
-        
                 gd.__loopStarted = true;
         
                 function loop() {
@@ -62,25 +62,10 @@ def server(input: Inputs, output: Outputs, session: Session):
         
                 loop();
             }
-        
-            function waitForPlot() {
-                const gd = document.getElementById("animated_plot");
-                if (!gd) {
-                    requestAnimationFrame(waitForPlot);
-                    return;
-                }
-        
-                // Ensure frames are registered before animating
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(startAnimation);
-                });
-            }
-        
-            waitForPlot();
+            startAnimation();
         })();
         </script>
         """
-
         return ui.HTML(plot_html + loop_script)
 
 app = App(app_ui, server)
