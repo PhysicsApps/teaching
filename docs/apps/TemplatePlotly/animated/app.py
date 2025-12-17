@@ -12,7 +12,8 @@ app_ui = ui.page_sidebar(
 )
 
 def server(input: Inputs, output: Outputs, session: Session):
-    x = np.linspace(0, 2 * np.pi, 100)
+    x = np.linspace(0, 2 * np.pi, 100, endpoint=False)
+    loop_started = False
 
     @render.ui
     def plot():
@@ -37,30 +38,45 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         # Generate Plotly HTML without full document wrapper
         plot_html = fig.to_html(
+            auto_play=False, # Disable animation here, because we will control it via JavaScript injection below
             include_plotlyjs="cdn",
             full_html=False,
             div_id="animated_plot"
         )
-
         # JavaScript to force infinite looping
         loop_script = """
         <script>
         (function () {
-            const gd = document.getElementById("animated_plot");
-
-            function loop() {
-                Plotly.animate(gd, null, {
-                    frame: { duration: 50, redraw: true },
-                    transition: { duration: 0 }
-                }).then(loop);
-            }
-
-            // Wait until Plotly is fully initialized
-            if (gd && gd.data) {
+            function startAnimation() {
+                const gd = document.getElementById("animated_plot");
+                if (!gd || gd.__loopStarted) return;
+        
+                gd.__loopStarted = true;
+        
+                function loop() {
+                    Plotly.animate(gd, null, {
+                        frame: { duration: 10, redraw: false },
+                        transition: { duration: 10 }
+                    }).then(loop);
+                }
+        
                 loop();
-            } else {
-                gd.on('plotly_afterplot', loop);
             }
+        
+            function waitForPlot() {
+                const gd = document.getElementById("animated_plot");
+                if (!gd) {
+                    requestAnimationFrame(waitForPlot);
+                    return;
+                }
+        
+                // Ensure frames are registered before animating
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(startAnimation);
+                });
+            }
+        
+            waitForPlot();
         })();
         </script>
         """
