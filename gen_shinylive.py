@@ -4,6 +4,8 @@ from shinylive import _export
 import os
 from pymdownx.slugs import slugify
 import platform
+import shutil
+
 target_url = 'https://physicsapps.github.io/teaching/' #use this for QR-code generation via e.g. https://pypi.org/project/qrcode/
 
 
@@ -44,3 +46,6 @@ for file_path in sorted(Path("docs").glob("**/app.md")):
 
         os.makedirs(Path("./site", target_shinypath), exist_ok=True)
         _export.export(target_apppath, Path("./site"), subdir=target_shinypath, verbose=True, full_shinylive=True)
+
+        # Copy source code incase the embed_code macro is used
+        shutil.copyfile(app_path, Path("./site", target_shinypath, "app.py"))
