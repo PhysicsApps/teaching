@@ -28,4 +28,3 @@ Note that this approach requires animations that loop smoothly. The entire frame
 For more advanced use cases, you can inject custom JavaScript code to control the animation behavior in Plotly directly. This allows for greater flexibility and smoother animations. The following example (from [plotly.js](https://plotly.com/javascript/animations/#animating-many-frames-quickly)) demonstrates how to create an animated plot using Plotly with custom JavaScript within a Shiny app, allowing for on-the-fly generation of new frames.
 {{embed_app("100%", "550px", "animated_js")}}
 {{embed_code("animated_js")}}
-Y
