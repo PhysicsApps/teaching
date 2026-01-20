@@ -37,7 +37,7 @@ app_ui = ui.page_fillable(
             ),
             ui.card(
                 ui.card_header("Reflected wave", style="color:rgb(157, 13, 21); background:rgb(247, 175, 179); font-size:15pt; text-align: center;"),
-                ui.tags.div(ui.output_text("reflexion"), style="font-size: 30pt; color:rgb(157, 13, 21); padding:10px;"),
+                ui.tags.div(ui.output_text("reflexion"), style="font-size: 25pt; color:rgb(157, 13, 21); padding:10px;"),
                 ui.tags.div(ui.input_switch("show_reflected_wave", "Show reflected wave", False), style="color:rgb(157, 13, 21)"),
                 style="background-color:rgb(247, 175, 179);"
             ),
@@ -59,7 +59,7 @@ app_ui = ui.page_fillable(
             ),
             ui.card(
                 ui.card_header("Transmitted wave", style="color:rgb(13, 76, 149); background:rgb(177, 209, 249); font-size:15pt; text-align: center;"),
-                ui.tags.div(ui.output_text("transmission"), style="font-size: 30pt; color:rgb(13, 76, 149); padding:10px;"),
+                ui.tags.div(ui.output_text("transmission"), style="font-size: 25pt; color:rgb(13, 76, 149); padding:10px;"),
                 ui.tags.div(ui.input_switch("show_transmitted_wave", "Show transmitted wave", True), style="color:rgb(13, 76, 149)"),
                 style="background-color:rgb(177, 209, 249);",
             ),
@@ -109,7 +109,7 @@ def server(input, output, session):
         alpha = np.atan2(k_inc[1], k_inc[0])
         beta = np.asin(np.sin(alpha)*n_1/n_2)
 
-        if input.polarisation == "perp":
+        if input.polarisation() == "perp":
             # perpendicular polarisation
             a_trans = 2*n_1*np.cos(alpha) / (n_1*np.cos(alpha) + n_2*np.cos(beta))
             a_refl = (n_1*np.cos(alpha)-n_2*np.cos(beta)) / (n_1*np.cos(alpha) + n_2*np.cos(beta))
@@ -150,12 +150,18 @@ def server(input, output, session):
             color_plane = 'white'
             cmap = berlin_plotly
             c_max = 1.6
+            red = 'rgb(247, 175, 179)'
+            blue = 'rgb(177, 209, 249)'
+            inc = 'white'
         else:
             template = 'plotly_white'
             bg_color = 'white'
             color_plane = 'black'
             cmap = 'RdBu_r'
             c_max = 1.5
+            red = 'rgb(157, 13, 21)'
+            blue = 'rgb(13, 76, 149)'
+            inc = 'black'
 
         e_tot, k_inc, k_refl, k_trans = calculate_fields()
         z = 1
@@ -181,13 +187,59 @@ def server(input, output, session):
             cmin=-1.5,
             cmax=c_max,
         ))
-        fig.add_trace(go.Scatter3d(
-            x = 2*[0, k_refl[0]],
-            y = 2*[0, k_refl[1]],
-            z = [z, z],
-            mode='lines',
-            line=dict(width=2, color='rgb(157, 13, 21)'),
-        ))
+        dz = 1
+        if input.polarisation() == "perp":
+            alpha = 0
+        else:
+            alpha = np.pi/2
+
+        fig.add_trace(go.Scatter3d(x=[0, 2 * k_refl[0]], y=[0, 2 * k_refl[1]], z=[z, z], mode='lines',
+                                   line=dict(width=4, color=red)))
+        fig.add_trace(
+            go.Scatter3d(x=[2 * k_refl[0]], y=[2 * k_refl[1]], z=[z], mode='markers', marker=dict(color=red, size=5)))
+        cx = k_refl[0]
+        cy = k_refl[1]
+        dx = k_refl[1]
+        dy = -k_refl[0]
+        N = np.sqrt(dx**2 + dy**2)
+        dx = dx/N
+        dy = dy/N
+        fig.add_trace(go.Scatter3d(x=[cx - dx * np.sin(alpha), cx + dx * np.sin(alpha)],
+                                   y=[cy - dy * np.sin(alpha), cy + dy * np.sin(alpha)],
+                                   z=[z + dz * np.cos(alpha), z - dz * np.cos(alpha)], mode='lines',
+                                   line=dict(width=4, color=red)))
+
+        fig.add_trace(
+            go.Scatter3d(x=[0, 2 * np.real(k_trans[0])], y=[0, 2 * np.real(k_trans[1])], z=[z, z], mode='lines',
+                         line=dict(width=4, color=blue)))
+        fig.add_trace(go.Scatter3d(x=[2 * np.real(k_trans[0])], y=[2 * np.real(k_trans[1])], z=[z], mode='markers',
+                                   marker=dict(color=blue, size=5)))
+        cx = np.real(k_trans[0])
+        cy = np.real(k_trans[1])
+        dx = np.real(k_trans[1])
+        dy = -np.real(k_trans[0])
+        N = np.sqrt(dx ** 2 + dy ** 2)
+        dx = dx / N
+        dy = dy / N
+        fig.add_trace(go.Scatter3d(x=[cx - dx * np.sin(alpha), cx + dx * np.sin(alpha)],
+                                   y=[cy - dy * np.sin(alpha), cy + dy * np.sin(alpha)],
+                                   z=[z + dz * np.cos(alpha), z - dz * np.cos(alpha)], mode='lines',
+                                   line=dict(width=4, color=blue)))
+
+        fig.add_trace(go.Scatter3d(x=[-2 * k_inc[0], 0], y=[-2 * k_inc[1], 0], z=[z, z], mode='lines',
+                                   line=dict(width=4, color=inc)))
+        fig.add_trace(go.Scatter3d(x=[0], y=[0], z=[z], mode='markers', marker=dict(color=inc, size=5)))
+        cx = -k_inc[0]
+        cy = -k_inc[1]
+        dx = k_inc[1]
+        dy = -k_inc[0]
+        N = np.sqrt(dx ** 2 + dy ** 2)
+        dx = dx / N
+        dy = dy / N
+        fig.add_trace(go.Scatter3d(x=[cx - dx * np.sin(alpha), cx + dx * np.sin(alpha)],
+                                   y=[cy - dy * np.sin(alpha), cy + dy * np.sin(alpha)],
+                                   z=[z + dz * np.cos(alpha), z - dz * np.cos(alpha)], mode='lines',
+                                   line=dict(width=4, color=inc)))
 
         fig.update_layout(
             template=template,
