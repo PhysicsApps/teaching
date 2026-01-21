@@ -13,4 +13,4 @@ draft: true
 ---
 # Diffraction and Transmission
 <!-- more -->
-{{embed_app("100%", "1000px")}}
+{{embed_app("100%", "920px")}}

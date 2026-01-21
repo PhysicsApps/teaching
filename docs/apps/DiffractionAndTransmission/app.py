@@ -30,7 +30,7 @@ app_ui = ui.page_fillable(
             ui.card(
                 ui.card_header("Incident wave", style="font-size:15pt; text-align: center;"),
                 ui.input_slider("k_abs", "k-vector length", 0.0, 5.0, 2.0),
-                ui.input_slider("k_angle", "k-vector angle", 0.0, 90.0, 0.0),
+                ui.input_slider("k_angle", "k-vector angle", 0.0, 90.0, 25.0),
                 ui.input_radio_buttons("polarisation", "Polarisation",
                                        {"perp": "Perpendicular", "parallel": "Parallel"}),
                 ui.input_switch("show_incident_wave", "Show incident wave", True),
@@ -38,21 +38,18 @@ app_ui = ui.page_fillable(
             ui.card(
                 ui.card_header("Reflected wave", style="color:rgb(157, 13, 21); background:rgb(247, 175, 179); font-size:15pt; text-align: center;"),
                 ui.tags.div(ui.output_text("reflexion"), style="font-size: 25pt; color:rgb(157, 13, 21); padding:10px;"),
-                ui.tags.div(ui.input_switch("show_reflected_wave", "Show reflected wave", False), style="color:rgb(157, 13, 21)"),
+                ui.tags.div(ui.input_switch("show_reflected_wave", "Show reflected wave", True), style="color:rgb(157, 13, 21)"),
                 style="background-color:rgb(247, 175, 179);"
             ),
-            ui.input_dark_mode(id='dark_mode'),
-            open='always',
-            width = "35%"
         ),
         ui.card(
             output_widget(
                 "plot_field",
-                width="900px", height="900px"
+                width="700px", height="700px"
             ),
         ),
         ui.card(
-            ui.card(
+      ui.card(
                 ui.card_header("Medium 2", style="font-size:15pt; text-align: center;"),
                 ui.input_slider("n_2", "Index of refraction", 0.0, 5.0, 2.0),
                 ui.input_slider("n_2_imag", "imaginary part of index of refraction", 0.0, 1.0, 0.0),
@@ -63,9 +60,10 @@ app_ui = ui.page_fillable(
                 ui.tags.div(ui.input_switch("show_transmitted_wave", "Show transmitted wave", True), style="color:rgb(13, 76, 149)"),
                 style="background-color:rgb(177, 209, 249);",
             ),
+            ui.input_dark_mode(id='dark_mode'),
             # ui.input_switch("Run", "Run simulation", False),
         ),
-        col_widths=(3, 6, 3),
+        col_widths=(3, 5, 3),
     ),
 )
 
@@ -111,12 +109,12 @@ def server(input, output, session):
 
         if input.polarisation() == "perp":
             # perpendicular polarisation
-            a_trans = 2*n_1*np.cos(alpha) / (n_1*np.cos(alpha) + n_2*np.cos(beta))
-            a_refl = (n_1*np.cos(alpha)-n_2*np.cos(beta)) / (n_1*np.cos(alpha) + n_2*np.cos(beta))
+            a_trans = np.abs(2*n_1*np.cos(alpha) / (n_1*np.cos(alpha) + n_2*np.cos(beta)))
+            a_refl = np.abs((n_1*np.cos(alpha)-n_2*np.cos(beta)) / (n_1*np.cos(alpha) + n_2*np.cos(beta)))
         else:
             # parallel polarisation
-            a_trans = 2*n_1*np.cos(alpha) / (n_2*np.cos(alpha) + n_1*np.cos(beta))
-            a_refl = (n_2*np.cos(alpha)-n_1*np.cos(beta)) / (n_2*np.cos(alpha) + n_1*np.cos(beta))
+            a_trans = np.abs(2*n_1*np.cos(alpha) / (n_2*np.cos(alpha) + n_1*np.cos(beta)))
+            a_refl = np.abs((n_2*np.cos(alpha)-n_1*np.cos(beta)) / (n_2*np.cos(alpha) + n_1*np.cos(beta)))
 
         e_inc = a_inc * np.exp(1j * (k_inc[0] * x_mat + k_inc[1] * y_mat))
         e_refl = a_refl * np.exp(1j * (k_refl[0] * x_mat + k_refl[1] * y_mat))
@@ -138,7 +136,11 @@ def server(input, output, session):
             e_tot += e_trans
 
         r.set(np.abs(a_refl/a_inc)**2)
-        t.set(np.abs(np.real(n_2)/np.real(n_1) * np.cos(beta)/np.cos(alpha)) * np.abs(a_trans/a_inc)**2)
+        if np.imag(k_trans[0])!=0 or np.imag(k_trans[1])!=0:
+            t.set(0.0)
+        else:
+            t.set(np.abs(np.real(n_2)/np.real(n_1) * np.cos(beta)/np.cos(alpha)) * np.abs(a_trans/a_inc)**2)
+
 
         return e_tot, k_inc, k_refl, k_trans
 
@@ -258,8 +260,8 @@ def server(input, output, session):
                 ),
             ),
 
-            width=900,
-            height=900,
+            width=700,
+            height=700,
             margin={"r": 0, "t": 0, "l": 0, "b": 60},
             showlegend=False,
         )
