@@ -6,10 +6,9 @@ categories:
 tags:
   - Fourier Transform
   - Scattering
-date: 2025-11-02
+date: 2026-02-18
 hide:
   - toc
-draft: true
 ---
 # Coherent Diffractive Imaging
 <!-- more -->
