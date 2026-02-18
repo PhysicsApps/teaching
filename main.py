@@ -23,7 +23,7 @@ def define_env(env):
     @env.macro
     def embed_app(width='100%', height='600px', subdir: str = None):
         current_path = Path(str(getattr(env, 'page'))) # " /blog/plotly-penguins-app.html"
-        return f"<div>\n<iframe src={get_app_link(current_path, subdir, 'index.html')} width={width} height={height}></iframe>\n</div>"
+        return f"""\n???+ example "Application"\n\t<div>\n\t<iframe src={get_app_link(current_path, subdir, 'index.html')} width={width} height={height} frameborder='0'></iframe>\n\t</div>"""
 
     @env.macro
     def embed_code(subdir: str = None, language: str = 'python', optional=True):
@@ -36,7 +36,7 @@ def define_env(env):
             raise KeyError("Unsupported language")
 
         if optional:
-            embed_text = "\n??? info\n" + embed_text.replace("\n", "\n\t")
+            embed_text = """\n??? quote "Code"\n""" + embed_text.replace("\n", "\n\t")
         return embed_text
 
     @env.macro

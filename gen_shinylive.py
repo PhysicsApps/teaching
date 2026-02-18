@@ -48,4 +48,8 @@ for file_path in sorted(Path("docs").glob("**/app.md")):
         _export.export(target_apppath, Path("./site"), subdir=target_shinypath, verbose=True, full_shinylive=True)
 
         # Copy source code incase the embed_code macro is used
-        shutil.copyfile(app_path, Path("./site", target_shinypath, "app.py"))
+        # shutil.copyfile(app_path, Path("./site", target_shinypath, "app.py"))
+
+        for file_name in os.listdir(target_apppath):
+            print(f"Copying {Path(target_apppath, file_name)} to {Path("./site", target_shinypath, file_name)}")
+            shutil.copyfile(Path(target_apppath, file_name), Path("./site", target_shinypath, file_name))
