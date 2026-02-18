@@ -51,5 +51,5 @@ for file_path in sorted(Path("docs").glob("**/app.md")):
         # shutil.copyfile(app_path, Path("./site", target_shinypath, "app.py"))
 
         for file_name in os.listdir(target_apppath):
-            print(f"Copying {Path(target_apppath, file_name)} to {Path("./site", target_shinypath, file_name)}")
+            print(f"Copying {Path(target_apppath, file_name)} to {Path('./site', target_shinypath, file_name)}")
             shutil.copyfile(Path(target_apppath, file_name), Path("./site", target_shinypath, file_name))
