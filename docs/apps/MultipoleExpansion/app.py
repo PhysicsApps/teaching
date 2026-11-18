@@ -185,9 +185,9 @@ def server(input, output, session):
         if input.selected_scenario() == 'Clickable':
             moment_q, moment_p, moment_qij = calculate_moments_pointlike()
 
-        dipole_xy = (moment_p[0] * x1_axis + moment_p[1] * x2_axis) / ((r + eps)**3)
-        dipole_xz = (moment_p[0] * x1_axis + moment_p[2] * x2_axis) / ((r + eps)**3)
-        dipole_yz = (moment_p[1] * x1_axis + moment_p[2] * x2_axis) / ((r + eps)**3)
+        dipole_xy = (moment_p[0] * X1 + moment_p[1] * X2) / ((r + eps)**3)
+        dipole_xz = (moment_p[0] * X1 + moment_p[2] * X2) / ((r + eps)**3)
+        dipole_yz = (moment_p[1] * X1 + moment_p[2] * X2) / ((r + eps)**3)
         return dipole_xy, dipole_xz, dipole_yz
 
     def calculate_quadrupole():
