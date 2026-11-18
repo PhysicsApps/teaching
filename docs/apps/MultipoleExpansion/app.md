@@ -2,12 +2,13 @@
 authors:
   - aherzig
   - lseiffert
+  - ptuemmler
 categories:
   - Physics
   - Mathematics
-tags:
-  - Draft
-date: 2025-11-16
+date: 
+    created: 2025-11-16
+    updated: 2026-11-18
 hide:
   - toc
 draft: true
